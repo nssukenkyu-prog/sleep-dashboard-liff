@@ -1,0 +1,19 @@
+{
+  "name": "sleep-dashboard-liff",
+  "version": "1.0.0",
+  "description": "Sleep Dashboard LIFF App",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "vite build && gh-pages -d dist"
+  },
+  "dependencies": {
+    "@line/liff": "^2.24.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "gh-pages": "^6.3.0"
+  }
+}
