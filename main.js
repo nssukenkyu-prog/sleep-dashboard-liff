@@ -2,7 +2,7 @@
 const LIFF_ID = '2008504578-mqGQ6Kal';
 
 // GASのWebアプリURL
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwmhuJUv-vTUygeJ4qhX_5o1jyM0nc9vPQdL4PJoSNzoAk4VY90fkhn8TofjWxpslnT/exec';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw-J5vQlODJmB315O3HKII9KWXRGfP4N6VTlDKwTAd04SOO9W6Nwe5kYx7bi4MRUTv6/exec';
 
 // アプリの状態
 let userId = null;
