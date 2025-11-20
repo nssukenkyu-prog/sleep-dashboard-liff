@@ -2,7 +2,7 @@
 // 設定
 // ===========================
 const LIFF_ID = '2008504578-mqGQ6Kal';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw-J5vQlODJmB315O3HKII9KWXRGfP4N6VTlDKwTAd04SOO9W6Nwe5kYx7bi4MRUTv6/exec'; // ← GASのウェブアプリURLに置き換え
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx6EuTbrNdj1mc8n5Y-O8LcvrnRzadwcs5dzoJi8WmzzrrB5N0Okn3meBiQzRSsm--2/exec'; // ← GASのウェブアプリURLに置き換え
 
 // ===========================
 // グローバル変数
