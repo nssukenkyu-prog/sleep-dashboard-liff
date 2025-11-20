@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SLEEP AI KEDO</title>
   
-  <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   
-  <!-- Flatpickr -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -648,7 +645,6 @@
 </head>
 <body>
   <div class="container">
-    <!-- ヘッダー -->
     <header class="header">
       <h1>SLEEP AI　Dashboard</h1>
       <div class="header-actions">
@@ -657,8 +653,7 @@
       </div>
     </header>
     
-     <!-- ⭐ デバッグ情報パネル（追加） -->
-    <div id="debugPanel" style="background: rgba(0,0,0,0.7); border: 2px solid #10b981; border-radius: 16px; padding: 20px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+     <div id="debugPanel" style="background: rgba(0,0,0,0.7); border: 2px solid #10b981; border-radius: 16px; padding: 20px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <h3 style="color: #10b981; margin: 0; font-size: 16px;">🐛 デバッグ情報</h3>
         <button onclick="document.getElementById('debugInfo').innerHTML=''" style="background: rgba(239,68,68,0.3); border: 1px solid #ef4444; color: #ef4444; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px;">クリア</button>
@@ -666,25 +661,20 @@
       <div id="debugInfo" style="font-family: 'Courier New', monospace; font-size: 12px; color: #cbd5e1; max-height: 200px; overflow-y: auto;"></div>
     </div>
     
-    <!-- ローディング -->
     <div id="loading" class="loading">
       <div class="loading-spinner"></div>
       <div class="loading-text">データを読み込んでいます...</div>
     </div>
     
-    <!-- エラー -->
     <div id="error" class="error hidden"></div>
     
-    <!-- ダッシュボード -->
     <div id="dashboard" class="hidden">
-      <!-- スコアカード -->
       <div class="score-card">
         <div class="score-label">睡眠スコア</div>
         <div class="score-value" id="sleepScore">0</div>
         <span class="badge" id="scoreBadge">-</span>
       </div>
       
-      <!-- 統計ボックス -->
       <div class="stats-grid">
         <div class="stat-box">
           <div class="stat-label">⏰ 総睡眠時間</div>
@@ -712,7 +702,6 @@
         </div>
       </div>
       
-      <!-- グラフ -->
       <div class="charts-grid">
         <div class="chart-container">
           <div class="chart-title">📊 睡眠ステージ推移（過去7日間）</div>
@@ -743,13 +732,11 @@
         </div>
       </div>
       
-      <!-- インサイト -->
       <div class="insights-container">
         <div class="insights-title">💡 今日のインサイト</div>
         <div id="insights"></div>
       </div>
       
-      <!-- アクションボタン -->
       <div class="action-buttons">
         <button class="action-btn" id="exportBtn">
           📥 データエクスポート
@@ -764,7 +751,6 @@
     </div>
   </div>
   
-  <!-- エクスポートモーダル -->
   <div id="exportModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -796,7 +782,6 @@
     </div>
   </div>
   
-  <!-- 比較モーダル -->
   <div id="compareModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -821,7 +806,6 @@
     </div>
   </div>
   
-  <!-- 設定モーダル -->
   <div id="settingsModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -870,49 +854,49 @@
       </div>
     </div>
   </div>
-    <script>
-    // 最初のログ
-    console.log('=== HTMLロード完了 ===');
-    document.getElementById('debugInfo').innerHTML = '<div style="color: #10b981;">✅ HTMLロード完了 (21:43)</div>';
-    
-    // LIFF SDKチェック
-    window.addEventListener('load', function() {
+  
+  <script>
+    function logDebug(msg, color = '#cbd5e1') {
       const debugDiv = document.getElementById('debugInfo');
-      debugDiv.innerHTML += '<div style="color: #10b981;">✅ window.load完了</div>';
+      const timestamp = new Date().toLocaleTimeString();
+      debugDiv.innerHTML += `<div style="color: ${color}; margin-bottom: 2px;">[${timestamp}] ${msg}</div>`;
+      debugDiv.scrollTop = debugDiv.scrollHeight;
+    }
+
+    logDebug('HTMLロード完了', '#10b981');
+    
+    window.addEventListener('load', function() {
+      logDebug('window.load完了', '#10b981');
       
       if (typeof liff === 'undefined') {
-        debugDiv.innerHTML += '<div style="color: #ef4444;">❌ LIFF SDKが読み込まれていません</div>';
+        logDebug('❌ LIFF SDKが読み込まれていません', '#ef4444');
       } else {
-        debugDiv.innerHTML += '<div style="color: #10b981;">✅ LIFF SDK読み込み成功</div>';
+        logDebug('✅ LIFF SDK読み込み成功', '#10b981');
       }
       
       if (typeof Chart === 'undefined') {
-        debugDiv.innerHTML += '<div style="color: #ef4444;">❌ Chart.jsが読み込まれていません</div>';
+        logDebug('❌ Chart.jsが読み込まれていません', '#ef4444');
       } else {
-        debugDiv.innerHTML += '<div style="color: #10b981;">✅ Chart.js読み込み成功</div>';
-      }
-      
-      if (typeof flatpickr === 'undefined') {
-        debugDiv.innerHTML += '<div style="color: #ef4444;">❌ Flatpickrが読み込まれていません</div>';
-      } else {
-        debugDiv.innerHTML += '<div style="color: #10b981;">✅ Flatpickr読み込み成功</div>';
+        logDebug('✅ Chart.js読み込み成功', '#10b981');
       }
       
       // main.jsチェック
       setTimeout(function() {
         if (typeof initializeLiff === 'undefined') {
-          debugDiv.innerHTML += '<div style="color: #ef4444;">❌ main.jsが読み込まれていません</div>';
-          debugDiv.innerHTML += '<div style="color: #f59e0b;">💡 対策：npm run build を実行してください</div>';
+          logDebug('❌ main.jsが正しく読み込まれていません', '#ef4444');
+          logDebug('💡 チェック項目:', '#f59e0b');
+          logDebug('1. ファイル名が小文字の「main.js」か確認', '#cbd5e1');
+          logDebug('2. index.htmlと同じフォルダにあるか確認', '#cbd5e1');
+          logDebug('3. ブラウザのコンソール(F12)でエラーを確認', '#cbd5e1');
         } else {
-          debugDiv.innerHTML += '<div style="color: #10b981;">✅ main.js読み込み成功</div>';
+          logDebug('✅ main.js読み込み成功', '#10b981');
         }
       }, 1000);
     });
     
-    // エラーキャッチ
+    // 予期せぬエラーのキャッチ
     window.onerror = function(message, source, lineno, colno, error) {
-      const debugDiv = document.getElementById('debugInfo');
-      debugDiv.innerHTML += `<div style="color: #ef4444;">❌ エラー: ${message}<br>ファイル: ${source}<br>行: ${lineno}</div>`;
+      logDebug(`❌ エラー発生: ${message} (Line: ${lineno})`, '#ef4444');
       return false;
     };
   </script>
