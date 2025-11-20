@@ -18,14 +18,28 @@ let userSettings = {
   notificationTime: '08:00'
 };
 
+// デバッグログ関数
+function debugLog(message, data = null) {
+  console.log(`[DEBUG] ${message}`, data || '');
+  // 画面にも表示
+  const debugDiv = document.getElementById('debugInfo');
+  if (debugDiv) {
+    const timestamp = new Date().toLocaleTimeString();
+    debugDiv.innerHTML += `<div style="margin: 5px 0; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 12px;">
+      <strong>${timestamp}</strong>: ${message}
+      ${data ? '<br><pre style="margin-top: 5px; overflow-x: auto;">' + JSON.stringify(data, null, 2) + '</pre>' : ''}
+    </div>`;
+    debugDiv.scrollTop = debugDiv.scrollHeight;
+  }
+}
+
 // ===========================
 // 初期化
 // ===========================
 document.addEventListener('DOMContentLoaded', () => {
+  debugLog('DOMContentLoaded - 初期化開始');
   initializeLiff();
   setupEventListeners();
-  setupDatePicker();
-  loadUserSettings();
 });
 
 // ===========================
@@ -33,21 +47,36 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===========================
 async function initializeLiff() {
   try {
+    debugLog('LIFF初期化開始', { LIFF_ID });
     await liff.init({ liffId: LIFF_ID });
+    debugLog('LIFF初期化成功');
     
     if (!liff.isLoggedIn()) {
+      debugLog('ログインしていません - ログイン画面へリダイレクト');
       liff.login();
       return;
     }
 
+    debugLog('ログイン済み - プロフィール取得中');
     const profile = await liff.getProfile();
     currentUserId = profile.userId;
+    debugLog('プロフィール取得成功', { userId: currentUserId, displayName: profile.displayName });
     
+    // 日付ピッカーをここで初期化
+    setupDatePicker();
+    debugLog('日付ピッカー初期化完了');
+    
+    debugLog('ダッシュボード読み込み開始');
     await loadDashboard();
     
   } catch (error) {
     console.error('LIFF初期化エラー:', error);
-    showError('アプリの初期化に失敗しました');
+    debugLog('❌ LIFF初期化エラー', { 
+      message: error.message, 
+      stack: error.stack,
+      name: error.name 
+    });
+    showError('アプリの初期化に失敗しました: ' + error.message);
   }
 }
 
@@ -55,15 +84,27 @@ async function initializeLiff() {
 // ユーザー設定の読み込み
 // ===========================
 function loadUserSettings() {
-  const saved = localStorage.getItem('sleepAppSettings');
-  if (saved) {
-    userSettings = { ...userSettings, ...JSON.parse(saved) };
-    applyTheme(userSettings.theme);
+  try {
+    const saved = localStorage.getItem('sleepAppSettings');
+    if (saved) {
+      userSettings = { ...userSettings, ...JSON.parse(saved) };
+      applyTheme(userSettings.theme);
+      debugLog('ユーザー設定を読み込みました', userSettings);
+    } else {
+      debugLog('保存された設定なし - デフォルト設定を使用');
+    }
+  } catch (error) {
+    debugLog('❌ 設定読み込みエラー', error);
   }
 }
 
 function saveUserSettings() {
-  localStorage.setItem('sleepAppSettings', JSON.stringify(userSettings));
+  try {
+    localStorage.setItem('sleepAppSettings', JSON.stringify(userSettings));
+    debugLog('ユーザー設定を保存しました', userSettings);
+  } catch (error) {
+    debugLog('❌ 設定保存エラー', error);
+  }
 }
 
 // ===========================
@@ -76,19 +117,36 @@ async function loadDashboard(date = null) {
     const targetDate = date || formatDate(currentDate);
     const url = `${GAS_URL}?action=getDashboardDataV2&userId=${currentUserId}&date=${targetDate}`;
     
+    debugLog('GASリクエスト送信', { url, userId: currentUserId, date: targetDate });
+    
     const response = await fetch(url);
+    debugLog('GASレスポンス受信', { status: response.status, statusText: response.statusText });
+    
     const data = await response.json();
+    debugLog('GASデータ解析完了', { success: data.success, dataKeys: Object.keys(data) });
     
     if (!data.success) {
       throw new Error(data.error || 'データ取得に失敗しました');
     }
     
     dashboardData = data;
+    debugLog('ダッシュボードデータ設定完了', { 
+      todayData: data.today, 
+      historyLength: data.history?.length,
+      streak: data.streak,
+      goalMinutes: data.goalMinutes
+    });
+    
     renderDashboard(data);
     hideLoading();
+    debugLog('✅ ダッシュボード描画完了');
     
   } catch (error) {
     console.error('データ取得エラー:', error);
+    debugLog('❌ データ取得エラー', { 
+      message: error.message, 
+      stack: error.stack 
+    });
     showError('データの読み込みに失敗しました: ' + error.message);
     hideLoading();
   }
@@ -98,23 +156,34 @@ async function loadDashboard(date = null) {
 // ダッシュボード描画
 // ===========================
 function renderDashboard(data) {
+  debugLog('ダッシュボード描画開始');
   document.getElementById('dashboard').classList.remove('hidden');
   
   // スコア表示
+  debugLog('スコア描画開始');
   renderScore(data.today);
   
   // ストリーク表示
+  debugLog('ストリーク描画開始', { streak: data.streak });
   renderStreak(data.streak || 0);
   
   // 統計表示
+  debugLog('統計描画開始');
   renderStats(data.today);
   
   // グラフ描画
+  debugLog('グラフ描画開始');
   renderCharts(data);
   
   // インサイト表示
+  debugLog('インサイト描画開始');
   renderInsights(data);
+  
+  debugLog('✅ ダッシュボード描画完了');
 }
+
+// ... 残りのコードは前回と同じ ...
+
 
 // ===========================
 // スコア計算 & 表示
