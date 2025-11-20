@@ -657,6 +657,15 @@
       </div>
     </header>
     
+     <!-- ⭐ デバッグ情報パネル（追加） -->
+    <div id="debugPanel" style="background: rgba(0,0,0,0.7); border: 2px solid #10b981; border-radius: 16px; padding: 20px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #10b981; margin: 0; font-size: 16px;">🐛 デバッグ情報</h3>
+        <button onclick="document.getElementById('debugInfo').innerHTML=''" style="background: rgba(239,68,68,0.3); border: 1px solid #ef4444; color: #ef4444; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px;">クリア</button>
+      </div>
+      <div id="debugInfo" style="font-family: 'Courier New', monospace; font-size: 12px; color: #cbd5e1; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+    
     <!-- ローディング -->
     <div id="loading" class="loading">
       <div class="loading-spinner"></div>
