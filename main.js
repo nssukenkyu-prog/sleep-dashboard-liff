@@ -1055,3 +1055,7 @@ function animateValue(element, start, end, duration) {
     element.textContent = Math.round(current);
   }, 16);
 }
+
+
+
+
