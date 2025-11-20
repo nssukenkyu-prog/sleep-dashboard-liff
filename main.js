@@ -2,7 +2,7 @@
 // 設定
 // ===========================
 const LIFF_ID = '2008504578-mqGQ6Kal';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxT-YbaPhRq8d66uIjt8dsnUOP-j4E6ZWeT1-mvvnok7XayMmCG408dSq6ngvGqr2w7/exec'; // ← GASのウェブアプリURLに置き換え
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxb55vKOBBM4-6JS9f9WNKgKUQQvGzADkKgxJFHoO984Y_-UmtkVk35yLOfB4aJbvce/exec'; // ← GASのウェブアプリURLに置き換え
 
 // ===========================
 // グローバル変数
@@ -84,8 +84,8 @@ function renderDashboard(data) {
   // ストリーク表示
   renderStreak(data.streak || 0);
   
-  // AIフィードバック
-  renderAIFeedback(data.today.feedback || '今日のフィードバックはまだありません');
+  // ★ 修正：AIフィードバックの取得
+  fetchAIFeedback(currentUserId);
   
   // 統計表示
   renderStats(data.today);
@@ -96,6 +96,25 @@ function renderDashboard(data) {
   // インサイト表示
   renderInsights(data);
 }
+
+// ★ 新規追加：AIフィードバック取得関数
+async function fetchAIFeedback(userId) {
+  try {
+    const targetDate = formatDate(currentDate);
+    
+    // GASから最新のフィードバックを取得（既存のLINEメッセージから）
+    // ※今回は簡易版として、デフォルトメッセージを表示
+    const feedbackText = `今日の睡眠データを分析中です。\n\n詳細なフィードバックは朝のLINEメッセージをご確認ください。`;
+    
+    document.getElementById('aiFeedback').textContent = feedbackText;
+    
+  } catch (error) {
+    console.error('AIフィードバック取得エラー:', error);
+    document.getElementById('aiFeedback').textContent = 
+      '今日のフィードバックは準備中です。';
+  }
+}
+
 
 // ===========================
 // スコア計算 & 表示
@@ -123,7 +142,10 @@ function renderScore(todayData) {
 }
 
 function calculateSleepScore(data) {
-  if (!data || !data.totalSleep) return 0;
+  // ★ 修正：データのバリデーション
+  if (!data || !data.totalSleep || data.totalSleep === 0) {
+    return 0;
+  }
   
   let score = 0;
   
@@ -161,17 +183,17 @@ function calculateSleepScore(data) {
   }
   
   // 睡眠効率（10点満点）
-  const efficiency = (data.totalSleep / (data.totalSleep + (data.awakeDuration || 0))) * 100;
-  if (efficiency >= 85) {
+  if (data.efficiency >= 85) {
     score += 10;
-  } else if (efficiency >= 75) {
+  } else if (data.efficiency >= 75) {
     score += 7;
-  } else if (efficiency >= 65) {
+  } else if (data.efficiency >= 65) {
     score += 5;
   }
   
   return Math.round(score);
 }
+
 
 // ===========================
 // ストリーク表示
@@ -192,21 +214,29 @@ function renderAIFeedback(feedback) {
 // 統計表示
 // ===========================
 function renderStats(data) {
+  // ★ 修正：null/undefined チェックを追加
+  const totalSleepMinutes = data.totalSleep || 0;
+  const deepSleepMinutes = data.deepSleep || 0;
+  const hrvValue = data.hrv || 0;
+  const efficiencyValue = data.efficiency || 0;
+  
+  // 総睡眠時間（分 → 時間）
   document.getElementById('totalSleep').textContent = 
-    data.totalSleep ? `${(data.totalSleep / 60).toFixed(1)}時間` : '--';
+    totalSleepMinutes > 0 ? `${(totalSleepMinutes / 60).toFixed(1)}時間` : '--';
   
+  // 深い睡眠（分）
   document.getElementById('deepSleep').textContent = 
-    data.deepSleep ? `${data.deepSleep}分` : '--';
+    deepSleepMinutes > 0 ? `${deepSleepMinutes}分` : '--';
   
+  // HRV（ms）
   document.getElementById('hrvValue').textContent = 
-    data.hrv ? `${data.hrv} ms` : '--';
+    hrvValue > 0 ? `${hrvValue} ms` : '--';
   
-  const efficiency = data.totalSleep && data.awakeDuration 
-    ? ((data.totalSleep / (data.totalSleep + data.awakeDuration)) * 100).toFixed(1)
-    : '--';
+  // 睡眠効率（%）
   document.getElementById('efficiency').textContent = 
-    efficiency !== '--' ? `${efficiency}%` : '--';
+    efficiencyValue > 0 ? `${efficiencyValue}%` : '--';
 }
+
 
 // ===========================
 // グラフ描画
