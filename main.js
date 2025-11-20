@@ -4,7 +4,6 @@
 const LIFF_ID = '2008504578-mqGQ6Kal';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyf1eOUlh0PC8BBx-nxN-kecxzErv3GG3yav9-mV4M0dm3cJ9Zf2s0aR17U_LOzQ3IF/exec';
 
-
 // ===========================
 // グローバル変数
 // ===========================
@@ -22,12 +21,11 @@ let userSettings = {
 // デバッグログ関数
 function debugLog(message, data = null) {
   console.log(`[DEBUG] ${message}`, data || '');
-  // 画面にも表示
   const debugDiv = document.getElementById('debugInfo');
   if (debugDiv) {
     const timestamp = new Date().toLocaleTimeString();
-    debugDiv.innerHTML += `<div style="margin: 5px 0; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 12px;">
-      <strong>${timestamp}</strong>: ${message}
+    debugDiv.innerHTML += `<div style="margin: 5px 0; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 12px; color: #cbd5e1;">
+      <strong style="color: #10b981;">${timestamp}</strong>: ${message}
       ${data ? '<br><pre style="margin-top: 5px; overflow-x: auto;">' + JSON.stringify(data, null, 2) + '</pre>' : ''}
     </div>`;
     debugDiv.scrollTop = debugDiv.scrollHeight;
@@ -182,9 +180,6 @@ function renderDashboard(data) {
   
   debugLog('✅ ダッシュボード描画完了');
 }
-
-// ... 残りのコードは前回と同じ ...
-
 
 // ===========================
 // スコア計算 & 表示
@@ -707,21 +702,24 @@ function generateInsights(data) {
 }
 
 // ===========================
-// 日付ピッカー設定（修正版）
+// 日付ピッカー設定
 // ===========================
 function setupDatePicker() {
-  flatpickr('#datePickerBtn', {
-    locale: 'ja',
-    dateFormat: 'Y-m-d',
-    defaultDate: currentDate,
-    maxDate: 'today',
-    onChange: function(selectedDates) {
-      if (selectedDates.length > 0) {
-        currentDate = selectedDates[0];
-        loadDashboard(formatDate(currentDate));
+  const btn = document.getElementById('datePickerBtn');
+  if (btn) {
+    flatpickr(btn, {
+      locale: 'ja',
+      dateFormat: 'Y-m-d',
+      defaultDate: currentDate,
+      maxDate: 'today',
+      onChange: function(selectedDates) {
+        if (selectedDates.length > 0) {
+          currentDate = selectedDates[0];
+          loadDashboard(formatDate(currentDate));
+        }
       }
-    }
-  });
+    });
+  }
 }
 
 // ===========================
@@ -729,30 +727,42 @@ function setupDatePicker() {
 // ===========================
 function setupEventListeners() {
   // リフレッシュボタン
-  document.getElementById('refreshBtn').addEventListener('click', () => {
-    loadDashboard();
-  });
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      loadDashboard();
+    });
+  }
   
   // エクスポート
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    openExportModal();
-  });
+  const exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      openExportModal();
+    });
+  }
   
   // 比較モード
-  document.getElementById('compareBtn').addEventListener('click', () => {
-    openCompareModal();
-  });
+  const compareBtn = document.getElementById('compareBtn');
+  if (compareBtn) {
+    compareBtn.addEventListener('click', () => {
+      openCompareModal();
+    });
+  }
   
   // 設定
-  document.getElementById('settingsBtn').addEventListener('click', () => {
-    openSettingsModal();
-  });
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      openSettingsModal();
+    });
+  }
   
   // モーダルのクローズボタン
   document.querySelectorAll('.modal-close').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const modal = e.target.closest('.modal');
-      modal.classList.remove('active');
+      if (modal) modal.classList.remove('active');
     });
   });
   
@@ -827,7 +837,6 @@ function exportCSV(data) {
 }
 
 function exportPDF(data) {
-  // 簡易版PDF生成（実際にはサーバーサイドで生成推奨）
   alert('PDF エクスポート機能は開発中です。現在はCSVをご利用ください。');
 }
 
@@ -1055,7 +1064,3 @@ function animateValue(element, start, end, duration) {
     element.textContent = Math.round(current);
   }, 16);
 }
-
-
-
-
