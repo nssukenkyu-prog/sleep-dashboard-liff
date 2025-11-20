@@ -4,6 +4,7 @@
 const LIFF_ID = '2008504578-mqGQ6Kal';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyf1eOUlh0PC8BBx-nxN-kecxzErv3GG3yav9-mV4M0dm3cJ9Zf2s0aR17U_LOzQ3IF/exec';
 
+
 // ===========================
 // グローバル変数
 // ===========================
