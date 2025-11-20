@@ -870,6 +870,52 @@
       </div>
     </div>
   </div>
+    <script>
+    // 最初のログ
+    console.log('=== HTMLロード完了 ===');
+    document.getElementById('debugInfo').innerHTML = '<div style="color: #10b981;">✅ HTMLロード完了 (21:43)</div>';
+    
+    // LIFF SDKチェック
+    window.addEventListener('load', function() {
+      const debugDiv = document.getElementById('debugInfo');
+      debugDiv.innerHTML += '<div style="color: #10b981;">✅ window.load完了</div>';
+      
+      if (typeof liff === 'undefined') {
+        debugDiv.innerHTML += '<div style="color: #ef4444;">❌ LIFF SDKが読み込まれていません</div>';
+      } else {
+        debugDiv.innerHTML += '<div style="color: #10b981;">✅ LIFF SDK読み込み成功</div>';
+      }
+      
+      if (typeof Chart === 'undefined') {
+        debugDiv.innerHTML += '<div style="color: #ef4444;">❌ Chart.jsが読み込まれていません</div>';
+      } else {
+        debugDiv.innerHTML += '<div style="color: #10b981;">✅ Chart.js読み込み成功</div>';
+      }
+      
+      if (typeof flatpickr === 'undefined') {
+        debugDiv.innerHTML += '<div style="color: #ef4444;">❌ Flatpickrが読み込まれていません</div>';
+      } else {
+        debugDiv.innerHTML += '<div style="color: #10b981;">✅ Flatpickr読み込み成功</div>';
+      }
+      
+      // main.jsチェック
+      setTimeout(function() {
+        if (typeof initializeLiff === 'undefined') {
+          debugDiv.innerHTML += '<div style="color: #ef4444;">❌ main.jsが読み込まれていません</div>';
+          debugDiv.innerHTML += '<div style="color: #f59e0b;">💡 対策：npm run build を実行してください</div>';
+        } else {
+          debugDiv.innerHTML += '<div style="color: #10b981;">✅ main.js読み込み成功</div>';
+        }
+      }, 1000);
+    });
+    
+    // エラーキャッチ
+    window.onerror = function(message, source, lineno, colno, error) {
+      const debugDiv = document.getElementById('debugInfo');
+      debugDiv.innerHTML += `<div style="color: #ef4444;">❌ エラー: ${message}<br>ファイル: ${source}<br>行: ${lineno}</div>`;
+      return false;
+    };
+  </script>
   
   <script src="./main.js"></script>
 </body>
