@@ -2,7 +2,7 @@
 // 設定
 // ===========================
 const LIFF_ID = '2008504578-mqGQ6Kal';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyez7CQfH_Anrix9y8vLWt2J0DqoizD_TbRH9AywBcEaB5uF9lXGrLL0RSquvWzOkaG/exec'; // ← GASのウェブアプリURLに置き換え
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyez7CQfH_Anrix9y8vLWt2J0DqoizD_TbRH9AywBcEaB5uF9lXGrLL0RSquvWzOkaG/exec';
 
 // ===========================
 // グローバル変数
@@ -11,6 +11,12 @@ let currentUserId = null;
 let currentDate = new Date();
 let dashboardData = null;
 let charts = {};
+let userSettings = {
+  goalMinutes: 420,
+  theme: 'default',
+  notificationsEnabled: true,
+  notificationTime: '08:00'
+};
 
 // ===========================
 // 初期化
@@ -19,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeLiff();
   setupEventListeners();
   setupDatePicker();
+  loadUserSettings();
 });
 
 // ===========================
@@ -42,6 +49,21 @@ async function initializeLiff() {
     console.error('LIFF初期化エラー:', error);
     showError('アプリの初期化に失敗しました');
   }
+}
+
+// ===========================
+// ユーザー設定の読み込み
+// ===========================
+function loadUserSettings() {
+  const saved = localStorage.getItem('sleepAppSettings');
+  if (saved) {
+    userSettings = { ...userSettings, ...JSON.parse(saved) };
+    applyTheme(userSettings.theme);
+  }
+}
+
+function saveUserSettings() {
+  localStorage.setItem('sleepAppSettings', JSON.stringify(userSettings));
 }
 
 // ===========================
@@ -84,9 +106,6 @@ function renderDashboard(data) {
   // ストリーク表示
   renderStreak(data.streak || 0);
   
-  // ★ 修正：AIフィードバックの取得
-  fetchAIFeedback(currentUserId);
-  
   // 統計表示
   renderStats(data.today);
   
@@ -96,25 +115,6 @@ function renderDashboard(data) {
   // インサイト表示
   renderInsights(data);
 }
-
-// ★ 新規追加：AIフィードバック取得関数
-async function fetchAIFeedback(userId) {
-  try {
-    const targetDate = formatDate(currentDate);
-    
-    // GASから最新のフィードバックを取得（既存のLINEメッセージから）
-    // ※今回は簡易版として、デフォルトメッセージを表示
-    const feedbackText = `今日の睡眠データを分析中です。\n\n詳細なフィードバックは朝のLINEメッセージをご確認ください。`;
-    
-    document.getElementById('aiFeedback').textContent = feedbackText;
-    
-  } catch (error) {
-    console.error('AIフィードバック取得エラー:', error);
-    document.getElementById('aiFeedback').textContent = 
-      '今日のフィードバックは準備中です。';
-  }
-}
-
 
 // ===========================
 // スコア計算 & 表示
@@ -142,7 +142,6 @@ function renderScore(todayData) {
 }
 
 function calculateSleepScore(data) {
-  // ★ 修正：データのバリデーション
   if (!data || !data.totalSleep || data.totalSleep === 0) {
     return 0;
   }
@@ -194,7 +193,6 @@ function calculateSleepScore(data) {
   return Math.round(score);
 }
 
-
 // ===========================
 // ストリーク表示
 // ===========================
@@ -204,17 +202,9 @@ function renderStreak(streak) {
 }
 
 // ===========================
-// AIフィードバック表示
-// ===========================
-function renderAIFeedback(feedback) {
-  document.getElementById('aiFeedback').textContent = feedback;
-}
-
-// ===========================
 // 統計表示
 // ===========================
 function renderStats(data) {
-  // ★ 修正：null/undefined チェックを追加
   const totalSleepMinutes = data.totalSleep || 0;
   const deepSleepMinutes = data.deepSleep || 0;
   const hrvValue = data.hrv || 0;
@@ -237,7 +227,6 @@ function renderStats(data) {
     efficiencyValue > 0 ? `${efficiencyValue}%` : '--';
 }
 
-
 // ===========================
 // グラフ描画
 // ===========================
@@ -256,7 +245,7 @@ function renderCharts(data) {
   renderRadarChart(data.today);
   
   // 4. 目標達成率円グラフ
-  renderGoalChart(data.today, data.goalMinutes || 450);
+  renderGoalChart(data.today, data.goalMinutes || userSettings.goalMinutes);
 }
 
 // 睡眠ステージ積み上げグラフ
@@ -270,72 +259,72 @@ function renderSleepStagesChart(history) {
   const awakeData = history.map(d => d.awakeDuration || 0);
   
   charts.sleepStages = new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: labels,
-    datasets: [
-      {
-        label: '深い睡眠',
-        data: deepData,
-        backgroundColor: '#10b981',  // ← 鮮やかな緑
-        borderColor: '#10b981',
-        borderWidth: 1
-      },
-      {
-        label: 'REM睡眠',
-        data: remData,
-        backgroundColor: '#8b5cf6',  // ← 鮮やかな紫
-        borderColor: '#8b5cf6',
-        borderWidth: 1
-      },
-      {
-        label: '浅い睡眠',
-        data: lightData,
-        backgroundColor: '#f59e0b',  // ← 鮮やかなオレンジ
-        borderColor: '#f59e0b',
-        borderWidth: 1
-      },
-      {
-        label: '覚醒',
-        data: awakeData,
-        backgroundColor: '#ef4444',  // ← 鮮やかな赤
-        borderColor: '#ef4444',
-        borderWidth: 1
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      x: { 
-        stacked: true,
-        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-        ticks: { color: '#f1f5f9' }  // ← 白文字
-      },
-      y: { 
-        stacked: true,
-        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-        ticks: { color: '#f1f5f9' }  // ← 白文字
-      }
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: '深い睡眠',
+          data: deepData,
+          backgroundColor: '#10b981',
+          borderColor: '#10b981',
+          borderWidth: 1
+        },
+        {
+          label: 'REM睡眠',
+          data: remData,
+          backgroundColor: '#8b5cf6',
+          borderColor: '#8b5cf6',
+          borderWidth: 1
+        },
+        {
+          label: '浅い睡眠',
+          data: lightData,
+          backgroundColor: '#f59e0b',
+          borderColor: '#f59e0b',
+          borderWidth: 1
+        },
+        {
+          label: '覚醒',
+          data: awakeData,
+          backgroundColor: '#ef4444',
+          borderColor: '#ef4444',
+          borderWidth: 1
+        }
+      ]
     },
-    plugins: {
-      legend: { 
-        labels: { color: '#f1f5f9' }  // ← 白文字
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { 
+          stacked: true,
+          grid: { color: 'rgba(255, 255, 255, 0.1)' },
+          ticks: { color: '#f1f5f9' }
+        },
+        y: { 
+          stacked: true,
+          grid: { color: 'rgba(255, 255, 255, 0.1)' },
+          ticks: { color: '#f1f5f9' }
+        }
       },
-      tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-        titleColor: '#f1f5f9',
-        bodyColor: '#cbd5e1',
-        callbacks: {
-          label: function(context) {
-            return `${context.dataset.label}: ${context.parsed.y}分`;
+      plugins: {
+        legend: { 
+          labels: { color: '#f1f5f9' }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          titleColor: '#f1f5f9',
+          bodyColor: '#cbd5e1',
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y}分`;
+            }
           }
         }
       }
     }
-  }
-});
+  });
 }
 
 // HRV + 心拍数デュアル軸グラフ
@@ -424,58 +413,58 @@ function renderRadarChart(todayData) {
   const sleepQuality = calculateSleepQuality(todayData);
   
   charts.radar = new Chart(ctx, {
-  type: 'radar',
-  data: {
-    labels: ['総睡眠', '深い睡眠', 'REM睡眠', 'HRV', '睡眠効率'],
-    datasets: [{
-      label: '今日の睡眠',
-      data: [
-        sleepQuality.totalSleep,
-        sleepQuality.deepSleep,
-        sleepQuality.remSleep,
-        sleepQuality.hrv,
-        sleepQuality.efficiency
-      ],
-      borderColor: '#6366f1',       // ← 鮮やかな青
-      backgroundColor: 'rgba(99, 102, 241, 0.3)',  // ← 半透明
-      pointBackgroundColor: '#6366f1',
-      pointBorderColor: '#fff',
-      pointHoverBackgroundColor: '#fff',
-      pointHoverBorderColor: '#6366f1',
-      borderWidth: 3
-    }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      r: {
-        beginAtZero: true,
-        max: 100,
-        ticks: {
-          stepSize: 20,
-          color: '#f1f5f9',  // ← 白文字
-          backdropColor: 'transparent'
-        },
-        grid: {
-          color: 'rgba(255, 255, 255, 0.2)'
-        },
-        pointLabels: {
-          color: '#f1f5f9',  // ← 白文字
-          font: {
-            size: 14,
-            weight: 'bold'
+    type: 'radar',
+    data: {
+      labels: ['総睡眠', '深い睡眠', 'REM睡眠', 'HRV', '睡眠効率'],
+      datasets: [{
+        label: '今日の睡眠',
+        data: [
+          sleepQuality.totalSleep,
+          sleepQuality.deepSleep,
+          sleepQuality.remSleep,
+          sleepQuality.hrv,
+          sleepQuality.efficiency
+        ],
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99, 102, 241, 0.3)',
+        pointBackgroundColor: '#6366f1',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: '#6366f1',
+        borderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            stepSize: 20,
+            color: '#f1f5f9',
+            backdropColor: 'transparent'
+          },
+          grid: {
+            color: 'rgba(255, 255, 255, 0.2)'
+          },
+          pointLabels: {
+            color: '#f1f5f9',
+            font: {
+              size: 14,
+              weight: 'bold'
+            }
           }
         }
-      }
-    },
-    plugins: {
-      legend: {
-        labels: { color: '#f1f5f9' }  // ← 白文字
+      },
+      plugins: {
+        legend: {
+          labels: { color: '#f1f5f9' }
+        }
       }
     }
-  }
-});
+  });
 }
 
 function calculateSleepQuality(data) {
@@ -620,7 +609,7 @@ function generateInsights(data) {
   }
   
   // 目標達成
-  const goalMinutes = data.goalMinutes || 450;
+  const goalMinutes = data.goalMinutes || userSettings.goalMinutes;
   if (today.totalSleep >= goalMinutes) {
     insights.push({
       icon: '🎯',
@@ -648,10 +637,10 @@ function generateInsights(data) {
 }
 
 // ===========================
-// 日付ピッカー設定
+// 日付ピッカー設定（修正版）
 // ===========================
 function setupDatePicker() {
-  flatpickr('#datePicker', {
+  flatpickr('#datePickerBtn', {
     locale: 'ja',
     dateFormat: 'Y-m-d',
     defaultDate: currentDate,
@@ -674,39 +663,88 @@ function setupEventListeners() {
     loadDashboard();
   });
   
-  // テーマ切り替え
-  document.getElementById('themeToggle').addEventListener('click', () => {
-    // TODO: ダークモード実装
-    alert('テーマ切り替え機能は近日公開予定です');
-  });
-  
   // エクスポート
   document.getElementById('exportBtn').addEventListener('click', () => {
-    exportData();
+    openExportModal();
   });
   
   // 比較モード
   document.getElementById('compareBtn').addEventListener('click', () => {
-    alert('日付比較機能は近日公開予定です');
+    openCompareModal();
   });
   
   // 設定
   document.getElementById('settingsBtn').addEventListener('click', () => {
-    alert('設定画面は近日公開予定です');
+    openSettingsModal();
+  });
+  
+  // モーダルのクローズボタン
+  document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const modal = e.target.closest('.modal');
+      modal.classList.remove('active');
+    });
+  });
+  
+  // モーダル背景クリックで閉じる
+  document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('active');
+      }
+    });
   });
 }
 
 // ===========================
-// データエクスポート
+// エクスポートモーダル
 // ===========================
-function exportData() {
+function openExportModal() {
+  document.getElementById('exportModal').classList.add('active');
+}
+
+async function executeExport() {
+  const format = document.getElementById('exportFormat').value;
+  const period = document.getElementById('exportPeriod').value;
+  
   if (!dashboardData) {
     alert('エクスポートするデータがありません');
     return;
   }
   
-  const csvContent = convertToCSV(dashboardData.history);
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  let dataToExport = dashboardData.history;
+  
+  // 期間でフィルタリング
+  if (period !== 'all') {
+    const days = parseInt(period);
+    dataToExport = dataToExport.slice(-days);
+  }
+  
+  if (format === 'csv') {
+    exportCSV(dataToExport);
+  } else if (format === 'pdf') {
+    exportPDF(dataToExport);
+  }
+  
+  document.getElementById('exportModal').classList.remove('active');
+}
+
+function exportCSV(data) {
+  const headers = ['日付', '総睡眠時間(分)', '深い睡眠(分)', '浅い睡眠(分)', 'REM睡眠(分)', '覚醒時間(分)', 'HRV', '安静時心拍数', '睡眠効率'];
+  const rows = data.map(d => [
+    d.date,
+    d.totalSleep || '',
+    d.deepSleep || '',
+    d.lightSleep || '',
+    d.remSleep || '',
+    d.awakeDuration || '',
+    d.hrv || '',
+    d.restingHeartRate || '',
+    d.efficiency || ''
+  ]);
+  
+  const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   
@@ -718,20 +756,187 @@ function exportData() {
   document.body.removeChild(link);
 }
 
-function convertToCSV(data) {
-  const headers = ['日付', '総睡眠時間(分)', '深い睡眠(分)', '浅い睡眠(分)', 'REM睡眠(分)', '覚醒時間(分)', 'HRV', '安静時心拍数'];
-  const rows = data.map(d => [
-    d.date,
-    d.totalSleep || '',
-    d.deepSleep || '',
-    d.lightSleep || '',
-    d.remSleep || '',
-    d.awakeDuration || '',
-    d.hrv || '',
-    d.restingHeartRate || ''
-  ]);
+function exportPDF(data) {
+  // 簡易版PDF生成（実際にはサーバーサイドで生成推奨）
+  alert('PDF エクスポート機能は開発中です。現在はCSVをご利用ください。');
+}
+
+// ===========================
+// 比較モーダル
+// ===========================
+function openCompareModal() {
+  document.getElementById('compareModal').classList.add('active');
+  setupCompareDatePickers();
+}
+
+function setupCompareDatePickers() {
+  flatpickr('#compareDate1', {
+    locale: 'ja',
+    dateFormat: 'Y-m-d',
+    maxDate: 'today'
+  });
   
-  return [headers, ...rows].map(row => row.join(',')).join('\n');
+  flatpickr('#compareDate2', {
+    locale: 'ja',
+    dateFormat: 'Y-m-d',
+    maxDate: 'today'
+  });
+}
+
+async function executeCompare() {
+  const date1 = document.getElementById('compareDate1').value;
+  const date2 = document.getElementById('compareDate2').value;
+  
+  if (!date1 || !date2) {
+    alert('2つの日付を選択してください');
+    return;
+  }
+  
+  showLoading();
+  
+  try {
+    // 2つの日付のデータを取得
+    const url1 = `${GAS_URL}?action=getDashboardDataV2&userId=${currentUserId}&date=${date1}`;
+    const url2 = `${GAS_URL}?action=getDashboardDataV2&userId=${currentUserId}&date=${date2}`;
+    
+    const [response1, response2] = await Promise.all([
+      fetch(url1),
+      fetch(url2)
+    ]);
+    
+    const [data1, data2] = await Promise.all([
+      response1.json(),
+      response2.json()
+    ]);
+    
+    if (!data1.success || !data2.success) {
+      throw new Error('データ取得に失敗しました');
+    }
+    
+    renderComparison(data1.today, data2.today, date1, date2);
+    hideLoading();
+    
+  } catch (error) {
+    console.error('比較データ取得エラー:', error);
+    alert('データの比較に失敗しました: ' + error.message);
+    hideLoading();
+  }
+}
+
+function renderComparison(data1, data2, date1, date2) {
+  const compareResult = document.getElementById('compareResult');
+  
+  const metrics = [
+    { label: '総睡眠時間', key: 'totalSleep', unit: '分' },
+    { label: '深い睡眠', key: 'deepSleep', unit: '分' },
+    { label: 'REM睡眠', key: 'remSleep', unit: '分' },
+    { label: 'HRV', key: 'hrv', unit: 'ms' },
+    { label: '睡眠効率', key: 'efficiency', unit: '%' }
+  ];
+  
+  let html = `
+    <div class="compare-header">
+      <div class="compare-date">${date1}</div>
+      <div class="compare-vs">VS</div>
+      <div class="compare-date">${date2}</div>
+    </div>
+    <div class="compare-metrics">
+  `;
+  
+  metrics.forEach(metric => {
+    const value1 = data1[metric.key] || 0;
+    const value2 = data2[metric.key] || 0;
+    const diff = value1 - value2;
+    const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
+    const diffIcon = diff > 0 ? '▲' : diff < 0 ? '▼' : '=';
+    
+    html += `
+      <div class="compare-row">
+        <div class="compare-label">${metric.label}</div>
+        <div class="compare-value">${value1}${metric.unit}</div>
+        <div class="compare-diff ${diffClass}">${diffIcon} ${Math.abs(diff)}${metric.unit}</div>
+        <div class="compare-value">${value2}${metric.unit}</div>
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  compareResult.innerHTML = html;
+  compareResult.classList.remove('hidden');
+}
+
+// ===========================
+// 設定モーダル
+// ===========================
+function openSettingsModal() {
+  document.getElementById('settingsModal').classList.add('active');
+  loadSettingsToForm();
+}
+
+function loadSettingsToForm() {
+  document.getElementById('goalMinutesInput').value = userSettings.goalMinutes;
+  document.getElementById('notificationsToggle').checked = userSettings.notificationsEnabled;
+  document.getElementById('notificationTime').value = userSettings.notificationTime;
+  document.getElementById('themeSelect').value = userSettings.theme;
+}
+
+function saveSettings() {
+  userSettings.goalMinutes = parseInt(document.getElementById('goalMinutesInput').value);
+  userSettings.notificationsEnabled = document.getElementById('notificationsToggle').checked;
+  userSettings.notificationTime = document.getElementById('notificationTime').value;
+  userSettings.theme = document.getElementById('themeSelect').value;
+  
+  saveUserSettings();
+  applyTheme(userSettings.theme);
+  
+  // GASに目標を保存
+  saveGoalToServer(userSettings.goalMinutes);
+  
+  document.getElementById('settingsModal').classList.remove('active');
+  
+  // ダッシュボードを再読み込み
+  loadDashboard();
+}
+
+async function saveGoalToServer(goalMinutes) {
+  try {
+    const url = `${GAS_URL}?action=setGoal&userId=${currentUserId}&goalMinutes=${goalMinutes}`;
+    await fetch(url);
+  } catch (error) {
+    console.error('目標保存エラー:', error);
+  }
+}
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  
+  const themes = {
+    default: {
+      primary: '#8b5cf6',
+      secondary: '#ec4899'
+    },
+    blue: {
+      primary: '#3b82f6',
+      secondary: '#06b6d4'
+    },
+    green: {
+      primary: '#10b981',
+      secondary: '#14b8a6'
+    },
+    orange: {
+      primary: '#f59e0b',
+      secondary: '#ef4444'
+    },
+    purple: {
+      primary: '#a855f7',
+      secondary: '#ec4899'
+    }
+  };
+  
+  if (themes[theme]) {
+    root.style.setProperty('--gradient-start', themes[theme].primary);
+    root.style.setProperty('--gradient-end', themes[theme].secondary);
+  }
 }
 
 // ===========================
