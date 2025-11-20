@@ -1,130 +1,650 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sleep Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            color: #667eea;
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
-        .user-info {
-            background: #f7f9fc;
-            padding: 16px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-        }
-        .card {
-            background: white;
-            border: 1px solid #e1e8ed;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-        }
-        .card h2 {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 12px;
-        }
-        .stat {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .stat:last-child {
-            border-bottom: none;
-        }
-        .stat-label {
-            color: #666;
-        }
-        .stat-value {
-            font-weight: bold;
-            color: #333;
-        }
-        .button {
-            width: 100%;
-            padding: 14px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 12px;
-        }
-        .button:active {
-            opacity: 0.8;
-        }
-        
-        /* ★ 新規追加：ローディングアニメーション */
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
-        }
-        .loading-spinner {
-            display: inline-block;
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-        }
-        .loading-text {
-            color: white;
-            font-size: 18px;
-            margin-top: 20px;
-            font-weight: 500;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* グラフ用のスタイル */
-        .chart-container {
-            position: relative;
-            height: 250px;
-            margin: 20px 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>睡眠ダッシュボード 2.0</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #667eea;
+      --secondary: #764ba2;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1e293b;
+      --light: #f1f5f9;
+      --glass: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      --text-primary: #ffffff;
+      --text-secondary: #cbd5e1;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Hiragino Sans', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
+
+    /* ヘッダー */
+    .header {
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: var(--shadow);
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .logo i {
+      color: var(--warning);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .date-picker {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .date-picker:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .theme-toggle {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .theme-toggle:hover {
+      transform: rotate(180deg);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* コンテナ */
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    /* ローディング */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 50vh;
+      gap: 1rem;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid var(--glass-border);
+      border-top-color: var(--text-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* カード */
+    .card {
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+      transition: all 0.3s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.5);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-title i {
+      color: var(--warning);
+    }
+
+    .badge {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .badge.success { background: var(--success); border-color: var(--success); }
+    .badge.warning { background: var(--warning); border-color: var(--warning); }
+    .badge.danger { background: var(--danger); border-color: var(--danger); }
+
+    /* グリッドレイアウト */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    /* スコアカード */
+    .score-card {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .score-display {
+      font-size: 4rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 1rem 0;
+    }
+
+    .score-label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* 統計ボックス */
+    .stat-box {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--glass);
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .stat-icon {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--glass);
+      border-radius: 12px;
+      font-size: 1.5rem;
+    }
+
+    .stat-content {
+      flex: 1;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* AIフィードバック */
+    .ai-feedback {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+      border-left: 4px solid var(--warning);
+      padding: 1.5rem;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ai-feedback::before {
+      content: '🤖';
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      font-size: 5rem;
+      opacity: 0.1;
+    }
+
+    .ai-feedback-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .ai-feedback-title {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .ai-feedback-text {
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    /* ストリーク */
+    .streak-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 2rem;
+      font-weight: bold;
+      padding: 1rem;
+    }
+
+    .streak-display i {
+      color: var(--warning);
+      animation: bounce 1s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* グラフコンテナ */
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-top: 1rem;
+    }
+
+    .chart-container.large {
+      height: 400px;
+    }
+
+    /* ボタン */
+    .btn {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 0.75rem 1.5rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border: none;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* インサイトカード */
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .insight-item {
+      background: var(--glass);
+      border-radius: 12px;
+      padding: 1rem;
+      border-left: 3px solid var(--success);
+      transition: all 0.3s;
+    }
+
+    .insight-item:hover {
+      transform: translateX(5px);
+    }
+
+    .insight-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .insight-text {
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+
+    /* モバイル対応 */
+    @media (max-width: 768px) {
+      .grid, .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .header-content {
+        flex-direction: column;
+      }
+
+      .score-display {
+        font-size: 3rem;
+      }
+
+      .chart-container {
+        height: 250px;
+      }
+    }
+
+    /* エラー表示 */
+    .error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      border-radius: 12px;
+      padding: 1rem;
+      margin: 1rem 0;
+      text-align: center;
+    }
+
+    /* 隠し要素 */
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-    <div id="app">
-        <div class="loading">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">読み込み中...</div>
+
+  <!-- ヘッダー -->
+  <div class="header">
+    <div class="header-content">
+      <div class="logo">
+        <i class="fas fa-moon"></i>
+        <span>睡眠ダッシュボード 2.0</span>
+      </div>
+      <div class="header-controls">
+        <input type="text" id="datePicker" class="date-picker" placeholder="📅 日付選択">
+        <div class="theme-toggle" id="themeToggle">
+          <i class="fas fa-adjust"></i>
         </div>
+        <button class="btn" id="refreshBtn">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- メインコンテナ -->
+  <div class="container">
+    
+    <!-- ローディング -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>データを読み込み中...</p>
     </div>
 
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script type="module" src="/main.js"></script>
+    <!-- エラー -->
+    <div id="error" class="error hidden"></div>
+
+    <!-- ダッシュボードコンテンツ -->
+    <div id="dashboard" class="hidden">
+
+      <!-- スコア & サマリー -->
+      <div class="grid grid-2">
+        <div class="card score-card">
+          <div class="score-label">睡眠スコア</div>
+          <div class="score-display" id="sleepScore">--</div>
+          <div class="badge" id="scoreBadge">評価中</div>
+        </div>
+
+        <div class="card">
+          <div class="stat-box">
+            <div class="stat-icon">🔥</div>
+            <div class="stat-content">
+              <div class="stat-label">連続達成日数</div>
+              <div class="streak-display" id="streak">
+                <i class="fas fa-fire"></i>
+                <span>0</span> 日
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AIフィードバック -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-robot"></i>
+            AIからのメッセージ
+          </div>
+        </div>
+        <div class="ai-feedback">
+          <div class="ai-feedback-content">
+            <div class="ai-feedback-title">
+              <i class="fas fa-brain"></i>
+              今日のフィードバック
+            </div>
+            <div class="ai-feedback-text" id="aiFeedback">
+              データを分析中です...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 主要統計 -->
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="stat-box">
+            <div class="stat-icon">😴</div>
+            <div class="stat-content">
+              <div class="stat-value" id="totalSleep">--</div>
+              <div class="stat-label">総睡眠時間</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="stat-box">
+            <div class="stat-icon">💤</div>
+            <div class="stat-content">
+              <div class="stat-value" id="deepSleep">--</div>
+              <div class="stat-label">深い睡眠</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="stat-box">
+            <div class="stat-icon">💓</div>
+            <div class="stat-content">
+              <div class="stat-value" id="hrvValue">--</div>
+              <div class="stat-label">HRV平均</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="stat-box">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+              <div class="stat-value" id="efficiency">--</div>
+              <div class="stat-label">睡眠効率</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- グラフセクション1：睡眠ステージ -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-layer-group"></i>
+            睡眠ステージ推移
+          </div>
+        </div>
+        <div class="chart-container large">
+          <canvas id="sleepStagesChart"></canvas>
+        </div>
+      </div>
+
+      <!-- グラフセクション2：HRV + 心拍数 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-heartbeat"></i>
+            心拍変動（HRV）& 心拍数
+          </div>
+        </div>
+        <div class="chart-container large">
+          <canvas id="hrvChart"></canvas>
+        </div>
+      </div>
+
+      <!-- グラフセクション3 & 4：2カラム -->
+      <div class="grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-chart-radar"></i>
+              睡眠効率分析
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-chart-pie"></i>
+              目標達成率
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="goalChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- インサイト -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-lightbulb"></i>
+            今週のインサイト
+          </div>
+        </div>
+        <div class="insights-grid" id="insights">
+          <!-- 動的に生成 -->
+        </div>
+      </div>
+
+      <!-- アクションボタン -->
+      <div class="card">
+        <div class="btn-group">
+          <button class="btn btn-primary" id="exportBtn">
+            <i class="fas fa-download"></i>
+            データをエクスポート
+          </button>
+          <button class="btn" id="compareBtn">
+            <i class="fas fa-exchange-alt"></i>
+            日付比較
+          </button>
+          <button class="btn" id="settingsBtn">
+            <i class="fas fa-cog"></i>
+            設定
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 外部ライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script type="module" src="/main.js"></script>
+
 </body>
 </html>
