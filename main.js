@@ -270,69 +270,72 @@ function renderSleepStagesChart(history) {
   const awakeData = history.map(d => d.awakeDuration || 0);
   
   charts.sleepStages = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: '深い睡眠',
-          data: deepData,
-          backgroundColor: 'rgba(16, 185, 129, 0.8)',
-          borderColor: 'rgba(16, 185, 129, 1)',
-          borderWidth: 1
-        },
-        {
-          label: 'REM睡眠',
-          data: remData,
-          backgroundColor: 'rgba(102, 126, 234, 0.8)',
-          borderColor: 'rgba(102, 126, 234, 1)',
-          borderWidth: 1
-        },
-        {
-          label: '浅い睡眠',
-          data: lightData,
-          backgroundColor: 'rgba(245, 158, 11, 0.8)',
-          borderColor: 'rgba(245, 158, 11, 1)',
-          borderWidth: 1
-        },
-        {
-          label: '覚醒',
-          data: awakeData,
-          backgroundColor: 'rgba(239, 68, 68, 0.8)',
-          borderColor: 'rgba(239, 68, 68, 1)',
-          borderWidth: 1
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { 
-          stacked: true,
-          grid: { color: 'rgba(255, 255, 255, 0.1)' },
-          ticks: { color: '#cbd5e1' }
-        },
-        y: { 
-          stacked: true,
-          grid: { color: 'rgba(255, 255, 255, 0.1)' },
-          ticks: { color: '#cbd5e1' }
-        }
+  type: 'bar',
+  data: {
+    labels: labels,
+    datasets: [
+      {
+        label: '深い睡眠',
+        data: deepData,
+        backgroundColor: '#10b981',  // ← 鮮やかな緑
+        borderColor: '#10b981',
+        borderWidth: 1
       },
-      plugins: {
-        legend: { 
-          labels: { color: '#ffffff' }
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return `${context.dataset.label}: ${context.parsed.y}分`;
-            }
+      {
+        label: 'REM睡眠',
+        data: remData,
+        backgroundColor: '#8b5cf6',  // ← 鮮やかな紫
+        borderColor: '#8b5cf6',
+        borderWidth: 1
+      },
+      {
+        label: '浅い睡眠',
+        data: lightData,
+        backgroundColor: '#f59e0b',  // ← 鮮やかなオレンジ
+        borderColor: '#f59e0b',
+        borderWidth: 1
+      },
+      {
+        label: '覚醒',
+        data: awakeData,
+        backgroundColor: '#ef4444',  // ← 鮮やかな赤
+        borderColor: '#ef4444',
+        borderWidth: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: { 
+        stacked: true,
+        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        ticks: { color: '#f1f5f9' }  // ← 白文字
+      },
+      y: { 
+        stacked: true,
+        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        ticks: { color: '#f1f5f9' }  // ← 白文字
+      }
+    },
+    plugins: {
+      legend: { 
+        labels: { color: '#f1f5f9' }  // ← 白文字
+      },
+      tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        titleColor: '#f1f5f9',
+        bodyColor: '#cbd5e1',
+        callbacks: {
+          label: function(context) {
+            return `${context.dataset.label}: ${context.parsed.y}分`;
           }
         }
       }
     }
-  });
+  }
+});
 }
 
 // HRV + 心拍数デュアル軸グラフ
@@ -421,55 +424,58 @@ function renderRadarChart(todayData) {
   const sleepQuality = calculateSleepQuality(todayData);
   
   charts.radar = new Chart(ctx, {
-    type: 'radar',
-    data: {
-      labels: ['総睡眠', '深い睡眠', 'REM睡眠', 'HRV', '睡眠効率'],
-      datasets: [{
-        label: '今日の睡眠',
-        data: [
-          sleepQuality.totalSleep,
-          sleepQuality.deepSleep,
-          sleepQuality.remSleep,
-          sleepQuality.hrv,
-          sleepQuality.efficiency
-        ],
-        borderColor: 'rgba(102, 126, 234, 1)',
-        backgroundColor: 'rgba(102, 126, 234, 0.2)',
-        pointBackgroundColor: 'rgba(102, 126, 234, 1)',
-        pointBorderColor: '#fff',
-        pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: 'rgba(102, 126, 234, 1)'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        r: {
-          beginAtZero: true,
-          max: 100,
-          ticks: {
-            stepSize: 20,
-            color: '#cbd5e1'
-          },
-          grid: {
-            color: 'rgba(255, 255, 255, 0.1)'
-          },
-          pointLabels: {
-            color: '#ffffff',
-            font: {
-              size: 12
-            }
+  type: 'radar',
+  data: {
+    labels: ['総睡眠', '深い睡眠', 'REM睡眠', 'HRV', '睡眠効率'],
+    datasets: [{
+      label: '今日の睡眠',
+      data: [
+        sleepQuality.totalSleep,
+        sleepQuality.deepSleep,
+        sleepQuality.remSleep,
+        sleepQuality.hrv,
+        sleepQuality.efficiency
+      ],
+      borderColor: '#6366f1',       // ← 鮮やかな青
+      backgroundColor: 'rgba(99, 102, 241, 0.3)',  // ← 半透明
+      pointBackgroundColor: '#6366f1',
+      pointBorderColor: '#fff',
+      pointHoverBackgroundColor: '#fff',
+      pointHoverBorderColor: '#6366f1',
+      borderWidth: 3
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      r: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          stepSize: 20,
+          color: '#f1f5f9',  // ← 白文字
+          backdropColor: 'transparent'
+        },
+        grid: {
+          color: 'rgba(255, 255, 255, 0.2)'
+        },
+        pointLabels: {
+          color: '#f1f5f9',  // ← 白文字
+          font: {
+            size: 14,
+            weight: 'bold'
           }
         }
-      },
-      plugins: {
-        legend: {
-          labels: { color: '#ffffff' }
-        }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: { color: '#f1f5f9' }  // ← 白文字
       }
     }
-  });
+  }
+});
 }
 
 function calculateSleepQuality(data) {
