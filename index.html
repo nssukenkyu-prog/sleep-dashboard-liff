@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SLEEP AI KEDO v2.1</title>
+  <title>SLEEP AI KEDO v2.2</title>
   
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -34,7 +34,7 @@
       background-color: var(--bg-body);
       color: var(--text-main);
       min-height: 100vh;
-      padding-bottom: 100px; /* ナビゲーション分の余白 */
+      padding-bottom: 100px;
     }
 
     .container {
@@ -63,7 +63,7 @@
       font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; cursor: pointer;
     }
 
-    /* メインスコア（サークルゲージ） */
+    /* メインスコア */
     .hero-section {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       margin-bottom: 30px; position: relative;
@@ -80,7 +80,7 @@
     .circle {
       fill: none; stroke-width: 2.5; stroke-linecap: round;
       animation: progress 1s ease-out forwards;
-      stroke: var(--primary); /* JSで動的に変更可能 */
+      stroke: var(--primary);
     }
     @keyframes progress { 0% { stroke-dasharray: 0 100; } }
     
@@ -105,13 +105,15 @@
     .stat-value { font-size: 24px; font-weight: 700; color: var(--text-main); font-family: 'Outfit', sans-serif; }
     .stat-unit { font-size: 14px; font-weight: 400; color: var(--text-sub); margin-left: 2px; }
 
-    /* ストリークカード */
-    .streak-card {
-      background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
-      color: white;
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 15px 20px;
+    /* ★新機能: 睡眠負債カード */
+    .debt-card {
+      background: var(--bg-card);
+      border-left: 4px solid var(--secondary);
     }
+    .debt-status {
+      font-size: 16px; font-weight: bold; display: flex; justify-content: space-between;
+    }
+    .debt-desc { font-size: 11px; color: var(--text-sub); margin-top: 5px; }
 
     /* チャートエリア */
     .chart-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: 700; font-size: 15px; align-items: center; }
@@ -137,7 +139,6 @@
       color: var(--text-sub); transition: 0.2s; position: relative;
     }
     .menu-btn.active { color: var(--primary); transform: translateY(-2px); }
-    .menu-label { display: none; } /* アイコンのみ表示 */
 
     /* モーダル */
     .modal {
@@ -211,6 +212,14 @@
 
       <div id="insightsContainer"></div>
 
+      <div class="card debt-card" id="debtCard">
+        <div class="debt-status">
+          <span>🏦 睡眠負債 (週)</span>
+          <span id="debtValue">計算中...</span>
+        </div>
+        <div class="debt-desc" id="debtDesc">過去7日間の目標との差分</div>
+      </div>
+
       <div class="grid-2">
         <div class="card">
           <div class="stat-label"><span>⏰</span> 睡眠時間</div>
@@ -221,7 +230,7 @@
           <div><span class="stat-value" id="deepSleep">--</span> <span class="stat-unit">分</span></div>
         </div>
         <div class="card">
-          <div class="stat-label"><span>💓</span> HRV</div>
+          <div class="stat-label"><span>💓</span> 心拍変動</div>
           <div><span class="stat-value" id="hrvValue">--</span> <span class="stat-unit">ms</span></div>
         </div>
         <div class="card">
@@ -230,45 +239,24 @@
         </div>
       </div>
 
-      <div class="card streak-card">
-        <div style="font-weight:700;">🔥 連続目標達成</div>
-        <div style="font-size:20px; font-weight:800;" id="streakValue">--日</div>
+      <div class="card">
+        <div class="chart-header"><span>📊 睡眠ステージ</span></div>
+        <div class="chart-wrapper"><canvas id="stageChart"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="chart-header">
-          <span>📊 睡眠ステージ</span>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="stageChart"></canvas>
-        </div>
+        <div class="chart-header"><span>💓 心拍変動トレンド</span></div>
+        <div class="chart-wrapper"><canvas id="hrvChart"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="chart-header">
-          <span>💓 HRVトレンド</span>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="hrvChart"></canvas>
-        </div>
+        <div class="chart-header"><span>🎯 睡眠バランス</span></div>
+        <div class="chart-wrapper"><canvas id="radarChart"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="chart-header">
-          <span>🎯 睡眠バランス</span>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="radarChart"></canvas>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="chart-header">
-          <span>📈 目標達成率</span>
-        </div>
-        <div class="chart-wrapper" style="height: 200px;">
-          <canvas id="goalChart"></canvas>
-        </div>
+        <div class="chart-header"><span>📈 睡眠目標達成率</span></div>
+        <div class="chart-wrapper" style="height: 240px;"><canvas id="goalChart"></canvas></div>
       </div>
 
     </div>
@@ -321,7 +309,6 @@
   <input type="text" id="hiddenDatePick" style="display:none;">
 
   <script>
-    // 設定値
     const CONFIG = {
       liffId: '2008504578-mqGQ6Kal',
       gasUrl: 'https://script.google.com/macros/s/AKfycbyf1eOUlh0PC8BBx-nxN-kecxzErv3GG3yav9-mV4M0dm3cJ9Zf2s0aR17U_LOzQ3IF/exec'
@@ -334,31 +321,53 @@
       charts: {}
     };
 
-    // 初期化
+    // 中心テキストプラグイン定義
+    const centerTextPlugin = {
+      id: 'centerText',
+      beforeDraw: function(chart) {
+        if (chart.config.type !== 'doughnut') return;
+        var width = chart.width, height = chart.height, ctx = chart.ctx;
+        ctx.restore();
+        
+        // メイン数値
+        var fontSize = (height / 114).toFixed(2);
+        ctx.font = "bold " + fontSize + "em Outfit";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#f1f5f9";
+        
+        // データ取得（達成率）
+        const data = chart.data.datasets[0].data;
+        const total = data[0] + data[1]; // 達成+残り=目標
+        const percentage = Math.round((data[0] / total) * 100);
+        const text = percentage + "%";
+        
+        var textX = Math.round((width - ctx.measureText(text).width) / 2);
+        var textY = height / 2;
+        ctx.fillText(text, textX, textY - 10);
+
+        // ラベル
+        ctx.font = "500 12px Noto Sans JP";
+        ctx.fillStyle = "#94a3b8";
+        const label = "目標達成率";
+        var labelX = Math.round((width - ctx.measureText(label).width) / 2);
+        ctx.fillText(label, labelX, textY + 15);
+        
+        ctx.save();
+      }
+    };
+    Chart.register(centerTextPlugin);
+
     document.addEventListener('DOMContentLoaded', async () => {
       setupUI();
       await initLiff();
     });
 
     function setupUI() {
-      // カレンダー設定
-      flatpickr("#hiddenDatePick", {
-        locale: 'ja', 
-        maxDate: 'today',
-        onChange: (d) => { if(d[0]) updateDate(d[0]); }
-      });
-      document.getElementById('datePickerTrigger').addEventListener('click', () => {
-        document.getElementById('hiddenDatePick')._flatpickr.open();
-      });
-
-      // 比較用カレンダー
+      flatpickr("#hiddenDatePick", { locale: 'ja', maxDate: 'today', onChange: (d) => { if(d[0]) updateDate(d[0]); } });
+      document.getElementById('datePickerTrigger').addEventListener('click', () => { document.getElementById('hiddenDatePick')._flatpickr.open(); });
       flatpickr("#compareDate1", { locale: 'ja', maxDate: 'today' });
       flatpickr("#compareDate2", { locale: 'ja', maxDate: 'today' });
-
-      // モーダル外クリック
-      document.querySelectorAll('.modal').forEach(m => {
-        m.addEventListener('click', e => { if(e.target === m) m.classList.remove('active'); });
-      });
+      document.querySelectorAll('.modal').forEach(m => { m.addEventListener('click', e => { if(e.target === m) m.classList.remove('active'); }); });
     }
 
     async function initLiff() {
@@ -367,41 +376,20 @@
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         state.userId = profile.userId;
-        
         updateDateDisplay();
-        loadDashboard(); // 初回ロード
-      } catch (err) {
-        alert('LIFF Error: ' + err.message);
-      }
+        loadDashboard();
+      } catch (err) { alert('LIFF Error: ' + err.message); }
     }
 
-    // 日付操作
-    function updateDate(newDate) {
-      state.currentDate = newDate;
-      updateDateDisplay();
-      loadDashboard();
-    }
-    
-    function changeDate(days) {
-      const d = new Date(state.currentDate);
-      d.setDate(d.getDate() + days);
-      // 未来の日付防止
-      if(d > new Date()) return; 
-      updateDate(d);
-    }
-
+    function updateDate(newDate) { state.currentDate = newDate; updateDateDisplay(); loadDashboard(); }
+    function changeDate(days) { const d = new Date(state.currentDate); d.setDate(d.getDate() + days); if(d > new Date()) return; updateDate(d); }
     function updateDateDisplay() {
       const d = state.currentDate;
       const fmt = `${d.getMonth()+1}/${d.getDate()}`;
-      const dayName = ['日','月','火','水','木','金','土'][d.getDay()];
-      document.getElementById('displayDate').textContent = `${d.getFullYear()}.${fmt} (${dayName})`;
+      document.getElementById('displayDate').textContent = `${d.getFullYear()}.${fmt}`;
     }
+    function formatDateParam(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-    function formatDateParam(d) {
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    }
-
-    // データ取得 & 描画
     async function loadDashboard() {
       showLoading(true);
       try {
@@ -411,62 +399,43 @@
         const data = await res.json();
         
         if(!data.success) throw new Error(data.error || 'No Data');
-        
         state.data = data;
         renderDashboard(data);
-      } catch (e) {
-        console.error(e);
-        renderErrorState();
-      } finally {
-        showLoading(false);
-      }
+      } catch (e) { console.error(e); renderErrorState(); } finally { showLoading(false); }
     }
 
     function showLoading(isLoading) {
       const skel = document.getElementById('skeletonLoader');
       const dash = document.getElementById('dashboard');
-      if(isLoading) {
-        skel.classList.remove('hidden');
-        dash.classList.add('hidden');
-      } else {
-        skel.classList.add('hidden');
-        dash.classList.remove('hidden');
-      }
+      if(isLoading) { skel.classList.remove('hidden'); dash.classList.add('hidden'); }
+      else { skel.classList.add('hidden'); dash.classList.remove('hidden'); }
     }
 
     function renderDashboard(data) {
       const t = data.today;
-
-      // 1. スコア
+      
+      // スコア
       const score = calculateScore(t);
       animateValue("scoreValue", 0, score, 1000);
-      
       const ring = document.getElementById('scoreRing');
       ring.style.strokeDasharray = `${score}, 100`;
       ring.style.stroke = score >= 80 ? 'var(--secondary)' : (score >= 60 ? '#facc15' : 'var(--accent)');
-      
-      const badge = document.getElementById('scoreBadge');
-      badge.textContent = score >= 80 ? 'EXCELLENT' : (score >= 60 ? 'GOOD' : 'POOR');
-      badge.style.color = ring.style.stroke;
+      document.getElementById('scoreBadge').textContent = score >= 80 ? 'EXCELLENT' : (score >= 60 ? 'GOOD' : 'POOR');
+      document.getElementById('scoreBadge').style.color = ring.style.stroke;
 
-      // 2. 数値
+      // 数値表示
       document.getElementById('totalSleep').textContent = t.totalSleep ? (t.totalSleep/60).toFixed(1) : '--';
       document.getElementById('deepSleep').textContent = t.deepSleep || '--';
       document.getElementById('hrvValue').textContent = t.hrv || '--';
       document.getElementById('efficiency').textContent = t.efficiency || '--';
-      
-      // 3. ストリーク（復活）
-      document.getElementById('streakValue').textContent = (data.streak || 0) + '日';
 
-      // 4. インサイト
+      // ★新機能: 睡眠負債計算
+      calculateSleepDebt(data);
+
+      // インサイト
       const insightsDiv = document.getElementById('insightsContainer');
-      if(score >= 80) {
-        insightsDiv.innerHTML = `<div class="card insight-card" style="padding:15px; display:flex; align-items:center; gap:10px;"><span>🌟</span><div><strong>素晴らしい睡眠です！</strong><br><span style="font-size:12px; opacity:0.9">この調子でリズムを維持しましょう。</span></div></div>`;
-      } else {
-        insightsDiv.innerHTML = '';
-      }
+      insightsDiv.innerHTML = score >= 80 ? `<div class="card insight-card" style="padding:15px; display:flex; align-items:center; gap:10px;"><span>🌟</span><div><strong>素晴らしい睡眠です！</strong><br><span style="font-size:12px; opacity:0.9">この調子で維持しましょう。</span></div></div>` : '';
 
-      // 5. チャート
       renderCharts(data);
     }
 
@@ -478,8 +447,34 @@
       if(t.efficiency >= 90) s += 30; else s += 10;
       return Math.min(100, s);
     }
-    
-    // 品質計算（レーダーチャート用）
+
+    // 睡眠負債計算ロジック
+    function calculateSleepDebt(data) {
+      const goal = data.goalMinutes || 420;
+      const history = data.history || [];
+      // 直近7日間のデータを使用
+      const recent = history.slice(-7);
+      
+      let totalActual = 0;
+      let totalGoal = goal * recent.length; // データがある日数分で計算
+      
+      recent.forEach(d => totalActual += d.totalSleep);
+      const diff = totalActual - totalGoal; // プラスなら貯金、マイナスなら負債
+      
+      const debtEl = document.getElementById('debtValue');
+      const cardEl = document.getElementById('debtCard');
+      
+      if(diff >= 0) {
+        debtEl.textContent = `+${(diff/60).toFixed(1)}時間 貯金`;
+        debtEl.style.color = 'var(--secondary)';
+        cardEl.style.borderLeftColor = 'var(--secondary)';
+      } else {
+        debtEl.textContent = `${(diff/60).toFixed(1)}時間 負債`;
+        debtEl.style.color = 'var(--accent)';
+        cardEl.style.borderLeftColor = 'var(--accent)';
+      }
+    }
+
     function calculateQuality(d) {
       if(!d || !d.totalSleep) return {t:0,d:0,r:0,h:0,e:0};
       return {
@@ -494,20 +489,20 @@
     function renderCharts(data) {
       Chart.defaults.color = '#94a3b8';
       Chart.defaults.borderColor = '#334155';
-
       const history = data.history || [];
       const labels = history.map(h => { const d = new Date(h.date); return `${d.getMonth()+1}/${d.getDate()}`; });
 
-      // 1. ステージチャート
+      // 1. ステージ (下から Deep -> Light -> REM)
+      // datasetsの配列順は描画順。stackedの場合、インデックス0が軸に近い（下）
       if(state.charts.stage) state.charts.stage.destroy();
       state.charts.stage = new Chart(document.getElementById('stageChart'), {
         type: 'bar',
         data: {
           labels: labels,
           datasets: [
-            { label: 'Deep', data: history.map(d=>d.deepSleep), backgroundColor: '#34d399', borderRadius: 4 },
-            { label: 'Rem', data: history.map(d=>d.remSleep), backgroundColor: '#818cf8', borderRadius: 4 },
-            { label: 'Light', data: history.map(d=>d.lightSleep), backgroundColor: '#fb7185', borderRadius: 4 }
+            { label: '深い', data: history.map(d=>d.deepSleep), backgroundColor: '#34d399', borderRadius: 4 }, // 最下段
+            { label: '浅い', data: history.map(d=>d.lightSleep), backgroundColor: '#fb7185', borderRadius: 4 }, // 中段
+            { label: 'REM', data: history.map(d=>d.remSleep), backgroundColor: '#818cf8', borderRadius: 4 }   // 最上段
           ]
         },
         options: {
@@ -517,14 +512,14 @@
         }
       });
 
-      // 2. HRVチャート
+      // 2. 心拍変動
       if(state.charts.hrv) state.charts.hrv.destroy();
       state.charts.hrv = new Chart(document.getElementById('hrvChart'), {
         type: 'line',
         data: {
           labels: labels,
           datasets: [{ 
-            label: 'HRV', 
+            label: '心拍変動', 
             data: history.map(d=>d.hrv), 
             borderColor: '#38bdf8', borderWidth: 2, tension: 0.4,
             backgroundColor: (ctx) => {
@@ -543,13 +538,13 @@
         }
       });
       
-      // 3. レーダーチャート（復活）
+      // 3. レーダー (ラベル背景透明化)
       if(state.charts.radar) state.charts.radar.destroy();
       const q = calculateQuality(data.today);
       state.charts.radar = new Chart(document.getElementById('radarChart'), {
         type: 'radar',
         data: {
-          labels: ['時間', '深い', 'REM', 'HRV', '効率'],
+          labels: ['時間', '深い', 'REM', '心拍変動', '効率'],
           datasets: [{
             label: 'バランス',
             data: Object.values(q),
@@ -566,14 +561,18 @@
               min: 0, max: 100,
               grid: { color: '#334155' },
               angleLines: { color: '#334155' },
-              pointLabels: { color: '#f1f5f9', font: { size: 12 } }
+              pointLabels: { 
+                color: '#f1f5f9', 
+                font: { size: 12 },
+                backdropColor: 'transparent' // 背景透明化
+              }
             }
           },
           plugins: { legend: { display: false } }
         }
       });
 
-      // 4. 目標チャート（復活）
+      // 4. 目標達成 (中心テキスト付き)
       if(state.charts.goal) state.charts.goal.destroy();
       const goal = data.goalMinutes || 420;
       const cur = data.today.totalSleep || 0;
@@ -589,31 +588,17 @@
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          cutout: '70%',
-          plugins: { legend: { position: 'bottom', labels: {color: '#94a3b8'} } }
+          cutout: '75%', // 少し細くしてスタイリッシュに
+          plugins: { legend: { display: false } } // 中心テキストがあるので凡例オフ
         }
       });
     }
 
-    // 数値アニメーション
-    function animateValue(id, start, end, duration) {
-      const obj = document.getElementById(id);
-      let startTimestamp = null;
-      const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        obj.innerHTML = Math.floor(progress * (end - start) + start);
-        if (progress < 1) window.requestAnimationFrame(step);
-      };
-      window.requestAnimationFrame(step);
-    }
-
-    // ユーティリティ
-    function openModal(id) { document.getElementById(id).classList.add('active'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-    function renderErrorState() {
-      document.getElementById('dashboard').innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-sub);">データが取得できませんでした</div>';
-      showLoading(false);
+    // アニメーション等は共通
+    function animateValue(id, s, e, d) {
+      const obj = document.getElementById(id); let start = null;
+      const step = (t) => { if(!start) start=t; const p=Math.min((t-start)/d,1); obj.innerHTML=Math.floor(p*(e-s)+s); if(p<1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
     }
     
     // 設定保存
@@ -624,35 +609,24 @@
       loadDashboard();
     }
 
-    // エクスポート機能（完全復活）
+    // エクスポート
     function executeExport() {
       if(!state.data || !state.data.history) return alert('データがありません');
-      
       const period = document.getElementById('exportPeriod').value;
       let targetData = [...state.data.history];
+      if(period !== 'all') targetData = targetData.slice(-parseInt(period));
       
-      // 期間フィルタリング（簡易的）
-      if(period !== 'all') {
-        targetData = targetData.slice(-parseInt(period));
-      }
-      
-      // CSV作成
-      const csvContent = ['日付,睡眠時間(分),深い睡眠(分),HRV'].join(',') + '\n' +
+      const csvContent = ['日付,睡眠時間(分),深い睡眠(分),心拍変動'].join(',') + '\n' +
         targetData.map(d => `${d.date},${d.totalSleep},${d.deepSleep},${d.hrv}`).join('\n');
         
       const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
       const blob = new Blob([bom, csvContent], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sleep_data_${formatDateParam(new Date())}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      
+      const a = document.createElement('a'); a.href = url; a.download = `sleep_data.csv`; a.click();
       closeModal('exportModal');
     }
 
-    // 比較実行
+    // 比較
     async function executeCompare() {
       const d1 = document.getElementById('compareDate1').value;
       const d2 = document.getElementById('compareDate2').value;
@@ -661,7 +635,6 @@
       const resEl = document.getElementById('compareResult');
       resEl.style.display = 'block';
       resEl.innerHTML = '計算中...';
-      
       try {
         const [r1, r2] = await Promise.all([
            fetch(`${CONFIG.gasUrl}?action=getDashboardDataV2&userId=${state.userId}&date=${d1}`).then(r=>r.json()),
@@ -670,19 +643,11 @@
         const val1 = r1.today.totalSleep || 0;
         const val2 = r2.today.totalSleep || 0;
         const diff = val1 - val2;
-        
         resEl.innerHTML = `
-          <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-            <span>${d1}</span> <span>VS</span> <span>${d2}</span>
-          </div>
-          <div style="font-size:18px;">
-            差: <span style="font-weight:bold; color:${diff>0?'var(--secondary)':'var(--accent)'}">${diff>0?'+':''}${diff}分</span>
-          </div>
-          <div style="font-size:12px; color:var(--text-sub); margin-top:5px;">
-            ${(val1/60).toFixed(1)}h / ${(val2/60).toFixed(1)}h
-          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${d1}</span> <span>VS</span> <span>${d2}</span></div>
+          <div style="font-size:18px;">差: <span style="font-weight:bold; color:${diff>0?'var(--secondary)':'var(--accent)'}">${diff>0?'+':''}${diff}分</span></div>
         `;
-      } catch(e) { resEl.innerHTML = 'データ取得エラー'; }
+      } catch(e) { resEl.innerHTML = 'エラー'; }
     }
   </script>
 </body>
