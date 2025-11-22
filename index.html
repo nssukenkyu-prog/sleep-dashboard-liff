@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SLEEP AI KEDO v2</title>
+  <title>SLEEP AI KEDO v2.1</title>
   
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -34,7 +34,7 @@
       background-color: var(--bg-body);
       color: var(--text-main);
       min-height: 100vh;
-      padding-bottom: 80px; /* ナビゲーション分の余白 */
+      padding-bottom: 100px; /* ナビゲーション分の余白 */
     }
 
     .container {
@@ -93,20 +93,29 @@
     .score-badge { font-size: 14px; font-weight: 700; padding: 4px 12px; border-radius: 20px; display: inline-block; background: rgba(255,255,255,0.1); }
 
     /* グリッドレイアウト */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
     
     .card {
       background: var(--bg-card); border-radius: 20px; padding: 20px;
       box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.05);
+      margin-bottom: 15px;
     }
     
     .stat-label { font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
     .stat-value { font-size: 24px; font-weight: 700; color: var(--text-main); font-family: 'Outfit', sans-serif; }
     .stat-unit { font-size: 14px; font-weight: 400; color: var(--text-sub); margin-left: 2px; }
 
+    /* ストリークカード */
+    .streak-card {
+      background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 15px 20px;
+    }
+
     /* チャートエリア */
-    .chart-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: 700; font-size: 15px; }
-    .chart-wrapper { position: relative; height: 200px; width: 100%; }
+    .chart-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: 700; font-size: 15px; align-items: center; }
+    .chart-wrapper { position: relative; height: 220px; width: 100%; }
 
     /* インサイト */
     .insight-card {
@@ -153,6 +162,7 @@
     button.primary-btn {
       width: 100%; padding: 16px; background: var(--primary); color: white;
       border: none; border-radius: 14px; font-weight: 700; font-size: 16px;
+      cursor: pointer;
     }
 
     /* スケルトンローディング */
@@ -215,26 +225,49 @@
           <div><span class="stat-value" id="hrvValue">--</span> <span class="stat-unit">ms</span></div>
         </div>
         <div class="card">
-          <div class="stat-label"><span>📊</span> 睡眠効率</div>
+          <div class="stat-label"><span>📊</span> 効率</div>
           <div><span class="stat-value" id="efficiency">--</span> <span class="stat-unit">%</span></div>
         </div>
       </div>
 
-      <div class="card" style="margin-bottom: 20px;">
+      <div class="card streak-card">
+        <div style="font-weight:700;">🔥 連続目標達成</div>
+        <div style="font-size:20px; font-weight:800;" id="streakValue">--日</div>
+      </div>
+
+      <div class="card">
         <div class="chart-header">
-          <span>睡眠ステージ推移</span>
+          <span>📊 睡眠ステージ</span>
         </div>
         <div class="chart-wrapper">
           <canvas id="stageChart"></canvas>
         </div>
       </div>
 
-      <div class="card" style="margin-bottom: 100px;">
+      <div class="card">
         <div class="chart-header">
-          <span>HRVトレンド</span>
+          <span>💓 HRVトレンド</span>
         </div>
         <div class="chart-wrapper">
           <canvas id="hrvChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-header">
+          <span>🎯 睡眠バランス</span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-header">
+          <span>📈 目標達成率</span>
+        </div>
+        <div class="chart-wrapper" style="height: 200px;">
+          <canvas id="goalChart"></canvas>
         </div>
       </div>
 
@@ -245,7 +278,7 @@
     <button class="menu-btn active" onclick="loadDashboard()">🏠</button>
     <button class="menu-btn" onclick="openModal('compareModal')">⚖️</button>
     <button class="menu-btn" onclick="openModal('settingsModal')">⚙️</button>
-    <button class="menu-btn" onclick="executeExport()">📥</button>
+    <button class="menu-btn" onclick="openModal('exportModal')">📥</button>
   </div>
 
   <div id="settingsModal" class="modal">
@@ -255,6 +288,20 @@
       <input type="number" id="goalMinutesInput" step="30" value="420">
       <button class="primary-btn" onclick="saveSettings()">保存して閉じる</button>
       <button class="primary-btn" style="background:transparent; margin-top:10px;" onclick="closeModal('settingsModal')">キャンセル</button>
+    </div>
+  </div>
+
+  <div id="exportModal" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-bottom:20px;">データ出力</h3>
+      <label class="stat-label">出力期間</label>
+      <select id="exportPeriod">
+        <option value="7">過去7日間</option>
+        <option value="30">過去30日間</option>
+        <option value="all">全期間</option>
+      </select>
+      <button class="primary-btn" onclick="executeExport()">CSVダウンロード</button>
+      <button class="primary-btn" style="background:transparent; margin-top:10px;" onclick="closeModal('exportModal')">キャンセル</button>
     </div>
   </div>
 
@@ -369,7 +416,6 @@
         renderDashboard(data);
       } catch (e) {
         console.error(e);
-        // エラー時はダミーデータで表示崩れを防ぐ、またはエラー表示
         renderErrorState();
       } finally {
         showLoading(false);
@@ -391,11 +437,10 @@
     function renderDashboard(data) {
       const t = data.today;
 
-      // 1. スコアリングとアニメーション
+      // 1. スコア
       const score = calculateScore(t);
       animateValue("scoreValue", 0, score, 1000);
       
-      // リングの色と長さ
       const ring = document.getElementById('scoreRing');
       ring.style.strokeDasharray = `${score}, 100`;
       ring.style.stroke = score >= 80 ? 'var(--secondary)' : (score >= 60 ? '#facc15' : 'var(--accent)');
@@ -405,12 +450,15 @@
       badge.style.color = ring.style.stroke;
 
       // 2. 数値
-      document.getElementById('totalSleep').textContent = (t.totalSleep/60).toFixed(1);
-      document.getElementById('deepSleep').textContent = t.deepSleep;
-      document.getElementById('hrvValue').textContent = t.hrv;
-      document.getElementById('efficiency').textContent = t.efficiency;
+      document.getElementById('totalSleep').textContent = t.totalSleep ? (t.totalSleep/60).toFixed(1) : '--';
+      document.getElementById('deepSleep').textContent = t.deepSleep || '--';
+      document.getElementById('hrvValue').textContent = t.hrv || '--';
+      document.getElementById('efficiency').textContent = t.efficiency || '--';
+      
+      // 3. ストリーク（復活）
+      document.getElementById('streakValue').textContent = (data.streak || 0) + '日';
 
-      // 3. インサイト（簡易ロジック）
+      // 4. インサイト
       const insightsDiv = document.getElementById('insightsContainer');
       if(score >= 80) {
         insightsDiv.innerHTML = `<div class="card insight-card" style="padding:15px; display:flex; align-items:center; gap:10px;"><span>🌟</span><div><strong>素晴らしい睡眠です！</strong><br><span style="font-size:12px; opacity:0.9">この調子でリズムを維持しましょう。</span></div></div>`;
@@ -418,29 +466,39 @@
         insightsDiv.innerHTML = '';
       }
 
-      // 4. チャート
+      // 5. チャート
       renderCharts(data);
     }
 
     function calculateScore(t) {
       if(!t || !t.totalSleep) return 0;
       let s = 0;
-      // 仮のロジック
       if((t.totalSleep/60) >= 7) s += 40; else s += 20;
       if(t.hrv >= 50) s += 30; else s += 10;
       if(t.efficiency >= 90) s += 30; else s += 10;
       return Math.min(100, s);
     }
+    
+    // 品質計算（レーダーチャート用）
+    function calculateQuality(d) {
+      if(!d || !d.totalSleep) return {t:0,d:0,r:0,h:0,e:0};
+      return {
+        t: Math.min(100, ((d.totalSleep/60)/7.5)*100),
+        d: Math.min(100, ((d.deepSleep/d.totalSleep)/0.2)*100),
+        r: Math.min(100, ((d.remSleep/d.totalSleep)/0.25)*100),
+        h: Math.min(100, (d.hrv/60)*100),
+        e: Math.min(100, (d.efficiency/85)*100)
+      };
+    }
 
     function renderCharts(data) {
-      // Chart.jsのデフォルトカラーをダークモード用に
       Chart.defaults.color = '#94a3b8';
       Chart.defaults.borderColor = '#334155';
 
       const history = data.history || [];
       const labels = history.map(h => { const d = new Date(h.date); return `${d.getMonth()+1}/${d.getDate()}`; });
 
-      // ステージチャート
+      // 1. ステージチャート
       if(state.charts.stage) state.charts.stage.destroy();
       state.charts.stage = new Chart(document.getElementById('stageChart'), {
         type: 'bar',
@@ -459,7 +517,7 @@
         }
       });
 
-      // HRVチャート
+      // 2. HRVチャート
       if(state.charts.hrv) state.charts.hrv.destroy();
       state.charts.hrv = new Chart(document.getElementById('hrvChart'), {
         type: 'line',
@@ -484,9 +542,60 @@
           scales: { y: { beginAtZero: false } }
         }
       });
+      
+      // 3. レーダーチャート（復活）
+      if(state.charts.radar) state.charts.radar.destroy();
+      const q = calculateQuality(data.today);
+      state.charts.radar = new Chart(document.getElementById('radarChart'), {
+        type: 'radar',
+        data: {
+          labels: ['時間', '深い', 'REM', 'HRV', '効率'],
+          datasets: [{
+            label: 'バランス',
+            data: Object.values(q),
+            borderColor: '#818cf8',
+            backgroundColor: 'rgba(129, 140, 248, 0.4)',
+            pointBackgroundColor: '#fff',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            r: {
+              min: 0, max: 100,
+              grid: { color: '#334155' },
+              angleLines: { color: '#334155' },
+              pointLabels: { color: '#f1f5f9', font: { size: 12 } }
+            }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      // 4. 目標チャート（復活）
+      if(state.charts.goal) state.charts.goal.destroy();
+      const goal = data.goalMinutes || 420;
+      const cur = data.today.totalSleep || 0;
+      state.charts.goal = new Chart(document.getElementById('goalChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['達成', '残り'],
+          datasets: [{
+            data: [cur, Math.max(0, goal - cur)],
+            backgroundColor: ['#34d399', '#1e293b'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          cutout: '70%',
+          plugins: { legend: { position: 'bottom', labels: {color: '#94a3b8'} } }
+        }
+      });
     }
 
-    // 数値カウントアップアニメーション
+    // 数値アニメーション
     function animateValue(id, start, end, duration) {
       const obj = document.getElementById(id);
       let startTimestamp = null;
@@ -506,8 +615,44 @@
       document.getElementById('dashboard').innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-sub);">データが取得できませんでした</div>';
       showLoading(false);
     }
+    
+    // 設定保存
+    function saveSettings() {
+      const g = document.getElementById('goalMinutesInput').value;
+      fetch(`${CONFIG.gasUrl}?action=setGoal&userId=${state.userId}&goalMinutes=${g}`);
+      closeModal('settingsModal');
+      loadDashboard();
+    }
 
-    // 比較・設定等の既存機能ロジックは必要に応じてここに追加（構造は旧コードと同様）
+    // エクスポート機能（完全復活）
+    function executeExport() {
+      if(!state.data || !state.data.history) return alert('データがありません');
+      
+      const period = document.getElementById('exportPeriod').value;
+      let targetData = [...state.data.history];
+      
+      // 期間フィルタリング（簡易的）
+      if(period !== 'all') {
+        targetData = targetData.slice(-parseInt(period));
+      }
+      
+      // CSV作成
+      const csvContent = ['日付,睡眠時間(分),深い睡眠(分),HRV'].join(',') + '\n' +
+        targetData.map(d => `${d.date},${d.totalSleep},${d.deepSleep},${d.hrv}`).join('\n');
+        
+      const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+      const blob = new Blob([bom, csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sleep_data_${formatDateParam(new Date())}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      closeModal('exportModal');
+    }
+
+    // 比較実行
     async function executeCompare() {
       const d1 = document.getElementById('compareDate1').value;
       const d2 = document.getElementById('compareDate2').value;
@@ -522,9 +667,22 @@
            fetch(`${CONFIG.gasUrl}?action=getDashboardDataV2&userId=${state.userId}&date=${d1}`).then(r=>r.json()),
            fetch(`${CONFIG.gasUrl}?action=getDashboardDataV2&userId=${state.userId}&date=${d2}`).then(r=>r.json())
         ]);
-        const diff = (r1.today.totalSleep || 0) - (r2.today.totalSleep || 0);
-        resEl.innerHTML = `<div><strong>${d1} vs ${d2}</strong></div><div style="margin-top:5px;">睡眠時間差: <span style="color:${diff>0?'var(--secondary)':'var(--accent)'}">${diff>0?'+':''}${diff}分</span></div>`;
-      } catch(e) { resEl.innerHTML = 'エラー発生'; }
+        const val1 = r1.today.totalSleep || 0;
+        const val2 = r2.today.totalSleep || 0;
+        const diff = val1 - val2;
+        
+        resEl.innerHTML = `
+          <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+            <span>${d1}</span> <span>VS</span> <span>${d2}</span>
+          </div>
+          <div style="font-size:18px;">
+            差: <span style="font-weight:bold; color:${diff>0?'var(--secondary)':'var(--accent)'}">${diff>0?'+':''}${diff}分</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-sub); margin-top:5px;">
+            ${(val1/60).toFixed(1)}h / ${(val2/60).toFixed(1)}h
+          </div>
+        `;
+      } catch(e) { resEl.innerHTML = 'データ取得エラー'; }
     }
   </script>
 </body>
