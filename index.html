@@ -210,7 +210,7 @@
   <input type="text" id="hiddenDatePick" style="display:none;">
 
   <script>
-    const CONFIG = { liffId: '2008504578-mqGQ6Kal', gasUrl: 'https://script.google.com/macros/s/AKfycbyf1eOUlh0PC8BBx-nxN-kecxzErv3GG3yav9-mV4M0dm3cJ9Zf2s0aR17U_LOzQ3IF/exec' };
+    const CONFIG = { liffId: '2008504578-mqGQ6Kal', gasUrl: 'https://script.google.com/macros/s/AKfycbxv1uG2SJpx5hoyB8sy7ekn3uyN3ys7rH_8hbjpwafjIIpFG7X6ZL1SBmVdt7zyhw8_/exec' };
     let state = { userId: null, currentDate: new Date(), data: null };
 
     Chart.register({ id: 'centerText', beforeDraw: function(c) { if(c.config.type!=='doughnut')return; var w=c.width,h=c.height,ctx=c.ctx; ctx.restore(); var fs=(h/114).toFixed(2); ctx.font="bold "+fs+"em Outfit"; ctx.textBaseline="middle"; ctx.fillStyle="#f1f5f9"; const d=c.data.datasets[0].data; const t=d[0]+d[1]; const p=t>0?Math.round((d[0]/t)*100):0; const tx=p+"%"; var tX=Math.round((w-ctx.measureText(tx).width)/2),tY=h/2; ctx.fillText(tx,tX,tY-10); ctx.font="500 12px Noto Sans JP"; ctx.fillStyle="#94a3b8"; const l="目標達成率"; var lX=Math.round((w-ctx.measureText(l).width)/2); ctx.fillText(l,lX,tY+15); ctx.save(); }});
