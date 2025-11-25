@@ -21,21 +21,37 @@
     }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     
-    /* ★微調整: 横幅のはみ出し防止とパディング縮小 */
     body { 
-      font-family: 'Outfit', 'Noto Sans JP', sans-serif; 
-      background: var(--bg-body); 
-      color: var(--text-main); 
-      min-height: 100vh; 
-      padding-bottom: 120px; 
-      overflow-x: hidden; /* 横スクロール防止 */
-    }
-    .container { 
-      width: 100%; 
-      max-width: 500px; /* スマホで見やすい幅に制限 */
-      margin: 0 auto; 
-      padding: 16px; /* 20px -> 16px に縮小 */
-    }
+  font-family: 'Outfit', 'Noto Sans JP', sans-serif; 
+  background: var(--bg-body); 
+  color: var(--text-main); 
+  min-height: 100vh; 
+  padding-bottom: 120px; 
+  /* ★ここが重要: 横スクロールを強制禁止 */
+  overflow-x: hidden; 
+  width: 100%;
+}
+
+.container { 
+  width: 100%; 
+  /* ★スマホでギュウギュウにならないようpadding調整 */
+  padding: 0 16px; 
+  margin: 20px auto;
+  max-width: 500px; /* PCで見ても広がりすぎないように */
+  box-sizing: border-box; /* paddingを含めた幅計算にする */
+}
+
+/* カードの余白も少し調整 */
+.card {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 20px; /* 内側の余白 */
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 15px;
+  width: 100%; /* 親要素に合わせる */
+  box-sizing: border-box; /* はみ出し防止 */
+}
 
     /* ヘッダー */
     .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--bg-card); padding: 8px 12px; border-radius: 16px; box-shadow: var(--shadow); }
