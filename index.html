@@ -2,555 +2,500 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>睡眠ダッシュボード</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SLEEP AI KEDO v3.1</title>
+  
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+  
   <style>
-    * {
-      margin: 0;
-      padding: 0;
+    :root {
+      --bg-body: #0f172a; --bg-card: #1e293b; --bg-input: #334155;
+      --primary: #818cf8; --secondary: #34d399; --accent: #fb7185;
+      --text-main: #f1f5f9; --text-sub: #94a3b8;
+      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    /* ★修正: 横スクロール完全防止と余白調整 */
+    body { 
+      font-family: 'Outfit', 'Noto Sans JP', sans-serif; 
+      background: var(--bg-body); 
+      color: var(--text-main); 
+      min-height: 100vh; 
+      padding-bottom: 120px; 
+      overflow-x: hidden; /* 横揺れ防止 */
+      width: 100%;
+    }
+    .container { 
+      width: 100%; 
+      max-width: 500px; 
+      margin: 0 auto; 
+      padding: 16px; /* スマホ向けに少し狭く */
       box-sizing: border-box;
     }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
+
+    /* ヘッダー・ナビ */
+    .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--bg-card); padding: 8px 12px; border-radius: 16px; box-shadow: var(--shadow); }
+    .nav-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 8px; border-radius: 50%; color: var(--text-sub); transition: 0.2s; }
+    .nav-btn:active { background: rgba(255,255,255,0.1); }
+    .date-display { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+    /* ローディング画面（リッチアニメーション） */
+    #loadingOverlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg-body); z-index: 2000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.5s ease;
     }
-    
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
+    .loader-ring {
+      width: 60px; height: 60px; border-radius: 50%;
+      border: 3px solid transparent; border-top-color: var(--primary); border-right-color: var(--secondary);
+      animation: spin 1s linear infinite; margin-bottom: 20px;
     }
-    
-    .header {
-      text-align: center;
-      color: white;
-      margin-bottom: 24px;
+    .loader-text {
+      font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; color: var(--text-main);
+      animation: pulse 1.5s infinite ease-in-out;
     }
-    
-    .header h1 {
-      font-size: 28px;
-      margin-bottom: 8px;
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    .fade-out { opacity: 0; pointer-events: none; }
+
+    /* スコアサークル */
+    .hero-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; position: relative; }
+    .score-circle { position: relative; width: 200px; height: 200px; } 
+    .circular-chart { display: block; margin: 0 auto; max-width: 100%; max-height: 100%; }
+    .circle-bg { fill: none; stroke: var(--bg-input); stroke-width: 2.5; }
+    .circle { fill: none; stroke-width: 2.5; stroke-linecap: round; animation: progress 1s ease-out forwards; stroke: var(--primary); }
+    @keyframes progress { 0% { stroke-dasharray: 0 100; } }
+    .score-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%; }
+    .score-label { font-size: 12px; color: var(--text-sub); letter-spacing: 1px; }
+    .score-value { font-size: 56px; font-weight: 800; line-height: 1; margin: 4px 0; text-shadow: 0 0 20px rgba(129, 140, 248, 0.3); }
+    .score-badge { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.1); }
+
+    /* カード共通 */
+    .card { 
+      background: var(--bg-card); border-radius: 16px; padding: 16px; 
+      box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.05); 
+      margin-bottom: 12px; width: 100%; box-sizing: border-box;
     }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .stat-label { font-size: 11px; color: var(--text-sub); margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
+    .stat-value { font-size: 22px; font-weight: 700; font-family: 'Outfit', sans-serif; }
+    .stat-unit { font-size: 12px; color: var(--text-sub); margin-left: 2px; }
     
-    .header p {
-      opacity: 0.9;
-      font-size: 14px;
+    .debt-card { border-left: 4px solid var(--secondary); }
+    .debt-status { font-size: 15px; font-weight: bold; display: flex; justify-content: space-between; }
+    .debt-desc { font-size: 10px; color: var(--text-sub); margin-top: 4px; }
+    .insight-card { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: white; border: none; margin-bottom: 16px; }
+
+    .chart-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-weight: 700; font-size: 14px; }
+    .chart-wrapper { position: relative; height: 200px; width: 100%; }
+
+    /* 解説セクション */
+    .info-section { margin-top: 30px; border-top: 1px solid var(--bg-input); padding-top: 20px; }
+    .info-title { font-size: 13px; font-weight: 700; color: var(--text-sub); margin-bottom: 12px; }
+    .info-item { margin-bottom: 16px; }
+    .info-head { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .info-text { font-size: 11px; color: var(--text-sub); line-height: 1.5; }
+    .calc-table { width: 100%; border-collapse: collapse; font-size: 11px; color: var(--text-sub); margin-top: 5px; }
+    .calc-table td { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .calc-table td:last-child { text-align: right; font-weight: bold; color: var(--text-main); }
+
+    /* フローティングメニュー */
+    .floating-menu { 
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+      background: rgba(30,41,59,0.9); backdrop-filter: blur(10px); 
+      border-radius: 40px; padding: 8px 20px; 
+      display: flex; gap: 15px; z-index: 100; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); 
+      width: max-content; max-width: 90%; overflow-x: auto; white-space: nowrap;
     }
+    .menu-btn { background: none; border: none; font-size: 22px; padding: 8px; cursor: pointer; color: var(--text-sub); transition: 0.2s; flex-shrink: 0; }
+    .menu-btn.active { color: var(--primary); transform: translateY(-2px); }
+
+    /* モーダル */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 3000; align-items: flex-end; }
+    .modal.active { display: flex; animation: fadeIn 0.2s; }
+    .modal-content { background: var(--bg-card); width: 100%; border-radius: 24px 24px 0 0; padding: 24px; animation: slideUp 0.3s; border-top: 1px solid rgba(255,255,255,0.1); max-height: 85vh; overflow-y: auto; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     
-    /* ★日付選択バー */
-    .date-selector {
-      background: white;
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
+    input, select { width: 100%; padding: 12px; background: var(--bg-input); border: none; border-radius: 10px; color: white; font-size: 15px; margin-bottom: 12px; outline: none; }
+    button.primary-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
     
-    .date-selector input[type="date"] {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 16px;
-      color: #333;
-    }
-    
-    .date-selector input[type="date"]:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-    
-    .card {
-      background: white;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    
-    .card-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #333;
-      margin-bottom: 16px;
-    }
-    
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-    
-    .stat-item {
-      text-align: center;
-      padding: 16px;
-      background: #f5f5f5;
-      border-radius: 12px;
-    }
-    
-    .stat-value {
-      font-size: 24px;
-      font-weight: bold;
-      color: #667eea;
-      margin-bottom: 4px;
-    }
-    
-    .stat-label {
-      font-size: 12px;
-      color: #666;
-    }
-    
-    .chart-container {
-      position: relative;
-      height: 250px;
-      margin-top: 16px;
-    }
-    
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: white;
-      font-size: 16px;
-    }
-    
-    .error {
-      background: #ff5252;
-      color: white;
-      padding: 16px;
-      border-radius: 12px;
-      text-align: center;
-      margin-bottom: 16px;
-    }
-    
-    .streak-badge {
-      display: inline-block;
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-weight: bold;
-      font-size: 14px;
-    }
-    
-    .goal-progress {
-      width: 100%;
-      height: 24px;
-      background: #e0e0e0;
-      border-radius: 12px;
-      overflow: hidden;
-      margin-top: 12px;
-      position: relative;
-    }
-    
-    .goal-progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-      transition: width 0.5s ease;
-    }
-    
-    .goal-progress-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 12px;
-      font-weight: bold;
-      color: white;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
+  
+  <div id="loadingOverlay">
+    <div class="loader-ring"></div>
+    <div class="loader-text">SLEEP AI ANALYZING...</div>
+  </div>
+
   <div class="container">
-    <div class="header">
-      <h1>💤 睡眠ダッシュボード</h1>
-      <p>あなたの睡眠を可視化</p>
-    </div>
-    
-    <!-- ★日付選択 -->
-    <div class="date-selector">
-      <input type="date" id="dateInput" />
-    </div>
-    
-    <div id="loading" class="loading">読み込み中...</div>
-    <div id="error" class="error" style="display:none;"></div>
-    
-    <div id="content" style="display:none;">
-      <!-- 今日のサマリー -->
-      <div class="card">
-        <div class="card-title">📊 選択日のデータ</div>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-value" id="totalSleep">--</div>
-            <div class="stat-label">総睡眠時間</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value" id="efficiency">--</div>
-            <div class="stat-label">睡眠効率</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value" id="deepSleep">--</div>
-            <div class="stat-label">深い睡眠</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value" id="hrv">--</div>
-            <div class="stat-label">HRV</div>
-          </div>
-        </div>
-        
-        <!-- 目標達成率 -->
-        <div style="margin-top: 20px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 14px; color: #666;">目標達成率</span>
-            <span style="font-size: 14px; font-weight: bold; color: #667eea;" id="goalText">450分</span>
-          </div>
-          <div class="goal-progress">
-            <div class="goal-progress-bar" id="goalProgressBar" style="width: 0%;"></div>
-            <div class="goal-progress-text" id="goalProgressText">0%</div>
+    <nav class="header-nav">
+      <button class="nav-btn" onclick="changeDate(-1)">❮</button>
+      <div class="date-display" id="datePickerTrigger">
+        <span id="displayDate">--/--</span>
+        <span style="font-size:12px; opacity:0.7;">▼</span>
+      </div>
+      <button class="nav-btn" onclick="changeDate(1)">❯</button>
+    </nav>
+
+    <div id="dashboard" class="hidden">
+      
+      <div class="hero-section">
+        <div class="score-circle">
+          <svg viewBox="0 0 36 36" class="circular-chart">
+            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <path class="circle" id="scoreRing" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          </svg>
+          <div class="score-content">
+            <div class="score-label">SLEEP SCORE</div>
+            <div class="score-value" id="scoreValue">--</div>
+            <div class="score-badge" id="scoreBadge">--</div>
           </div>
         </div>
       </div>
+
+      <div id="insightsContainer"></div>
       
-      <!-- 連続達成 -->
-      <div class="card">
-        <div class="card-title">🔥 連続達成記録</div>
-        <div style="text-align: center; padding: 20px 0;">
-          <span class="streak-badge" id="streak">0日連続</span>
-        </div>
+      <div class="grid-2">
+        <div class="card"><div class="stat-label"><span>⏰</span> 睡眠時間</div><div><span class="stat-value" id="totalSleep">--</span> <span class="stat-unit">時間</span></div></div>
+        <div class="card"><div class="stat-label"><span>💤</span> 深い睡眠</div><div><span class="stat-value" id="deepSleep">--</span> <span class="stat-unit">分</span></div></div>
+        <div class="card"><div class="stat-label"><span>💓</span> 心拍変動</div><div><span class="stat-value" id="hrvValue">--</span> <span class="stat-unit">ms</span></div></div>
+        <div class="card"><div class="stat-label"><span>📊</span> 効率</div><div><span class="stat-value" id="efficiency">--</span> <span class="stat-unit">%</span></div></div>
       </div>
       
-      <!-- 睡眠時間推移 -->
-      <div class="card">
-        <div class="card-title">📈 過去7日間の推移</div>
-        <div class="chart-container">
-          <canvas id="sleepChart"></canvas>
+      <div class="card debt-card" id="debtCard">
+        <div class="debt-status">
+          <span>🏦 週間睡眠バランス</span>
+          <span id="debtValue">計算中...</span>
         </div>
+        <div class="debt-desc" id="debtDesc">記録がある日の平均と比較</div>
       </div>
       
-      <!-- HRV推移 -->
       <div class="card">
-        <div class="card-title">❤️ HRV推移</div>
-        <div class="chart-container">
-          <canvas id="hrvChart"></canvas>
+        <div class="chart-header"><span>📊 睡眠ステージ</span></div>
+        <div class="chart-wrapper"><canvas id="stageChart"></canvas></div>
+      </div>
+      
+      <div class="card">
+        <div class="chart-header"><span>💓 心拍変動トレンド</span></div>
+        <div class="chart-wrapper"><canvas id="hrvChart"></canvas></div>
+      </div>
+      
+      <div class="card">
+        <div class="chart-header"><span>🎯 睡眠バランス</span></div>
+        <div class="chart-wrapper"><canvas id="radarChart"></canvas></div>
+      </div>
+      
+      <div class="card">
+        <div class="chart-header"><span>📈 睡眠目標達成率</span></div>
+        <div class="chart-wrapper" style="height: 220px;"><canvas id="goalChart"></canvas></div>
+      </div>
+
+      <div class="info-section">
+        <div class="info-title">ℹ️ 指標・スコアについて</div>
+        <div class="card" style="margin-bottom:15px;">
+          <div class="info-item">
+            <div class="info-head">🏆 スコア算出方法 (100点満点)</div>
+            <div class="info-text">日々のデータを以下の3基準で合算評価。</div>
+            <table class="calc-table">
+              <tr><td>① 睡眠時間 (7時間以上)</td><td>40点</td></tr>
+              <tr><td>② 心拍変動 (50ms以上)</td><td>30点</td></tr>
+              <tr><td>③ 睡眠効率 (90%以上)</td><td>30点</td></tr>
+            </table>
+          </div>
         </div>
+        <div class="info-item"><div class="info-head">💓 心拍変動 (HRV)</div><div class="info-text">自律神経のコンディションを示す指標。数値が高いほどリラックス、低いほどストレス状態です。</div></div>
+        <div class="info-item"><div class="info-head">📊 睡眠効率</div><div class="info-text">ベッドにいた時間に対する実際の睡眠時間の割合。85%以上が良好の目安です。</div></div>
       </div>
     </div>
   </div>
 
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <div class="floating-menu">
+    <button class="menu-btn active" onclick="loadDashboard()">🏠</button>
+    <button class="menu-btn" onclick="openModal('compareModal')">⚖️</button>
+    <button class="menu-btn" onclick="openModal('settingsModal')">⚙️</button>
+    <button class="menu-btn" onclick="openModal('exportModal')">📥</button>
+    <button class="menu-btn" onclick="shareScore()" style="color:#38bdf8;">📤</button>
+  </div>
+
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <h3>設定</h3>
+      <label class="stat-label">目標睡眠時間（分）</label>
+      <input type="number" id="goalMinutesInput" step="30" value="420">
+      <button class="primary-btn" onclick="saveSettings()">保存</button>
+      <button class="primary-btn" style="background:transparent;margin-top:10px;" onclick="closeModal('settingsModal')">キャンセル</button>
+    </div>
+  </div>
+  
+  <div id="exportModal" class="modal">
+    <div class="modal-content">
+      <h3>データ出力</h3>
+      <p style="font-size:12px; color:var(--text-sub); margin-bottom:15px;">
+        ※iPhone等のLINEアプリ内ではダウンロードできない場合があります。<br>
+        その場合は右上のメニューから「ブラウザで開く」を選択してください。
+      </p>
+      <label class="stat-label">出力期間</label>
+      <select id="exportPeriod">
+        <option value="7">過去7日間</option>
+        <option value="30">過去30日間</option>
+        <option value="all">全期間</option>
+      </select>
+      <button class="primary-btn" onclick="executeExport()">CSV生成・ダウンロード</button>
+      <button class="primary-btn" style="background:transparent;margin-top:10px;" onclick="closeModal('exportModal')">キャンセル</button>
+    </div>
+  </div>
+  
+  <div id="compareModal" class="modal">
+    <div class="modal-content">
+      <h3>過去データ比較</h3>
+      <div class="grid-2">
+        <input type="text" id="compareDate1" placeholder="基準日">
+        <input type="text" id="compareDate2" placeholder="比較対象">
+      </div>
+      <div id="compareResult" style="margin-bottom:15px;background:var(--bg-input);padding:15px;border-radius:12px;display:none;"></div>
+      <button class="primary-btn" onclick="executeCompare()">比較実行</button>
+      <button class="primary-btn" style="background:transparent;margin-top:10px;" onclick="closeModal('compareModal')">閉じる</button>
+    </div>
+  </div>
+  
+  <input type="text" id="hiddenDatePick" style="display:none;">
+
   <script>
-  let myChart = null;
-  let currentDate = new Date(); // ★現在選択中の日付を保持
+    // ★設定: GASのWebアプリURLを確認してください
+    const CONFIG = { 
+      liffId: '2008504578-mqGQ6Kal', 
+      gasUrl: 'https://script.google.com/macros/s/AKfycbyf1eOUlh0PC8BBx-nxN-kecxzErv3GG3yav9-mV4M0dm3cJ9Zf2s0aR17U_LOzQ3IF/exec' 
+    };
+    
+    let state = { userId: null, currentDate: new Date(), data: null, charts: {} };
 
-  // ★日付フォーマット関数（yyyy-MM-dd形式）
-  function formatDateParam(d) {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
+    // グラフプラグイン（中央テキスト）
+    Chart.register({ 
+      id: 'centerText', 
+      beforeDraw: function(c) { 
+        if(c.config.type!=='doughnut')return; 
+        var w=c.width,h=c.height,ctx=c.ctx; 
+        ctx.restore(); 
+        var fs=(h/114).toFixed(2); 
+        ctx.font="bold "+fs+"em Outfit"; 
+        ctx.textBaseline="middle"; 
+        ctx.fillStyle="#f1f5f9"; 
+        const d=c.data.datasets[0].data; 
+        const t=d[0]+d[1]; 
+        const p=t>0?Math.round((d[0]/t)*100):0; 
+        const tx=p+"%"; 
+        var tX=Math.round((w-ctx.measureText(tx).width)/2),tY=h/2; 
+        ctx.fillText(tx,tX,tY-10); 
+        ctx.font="500 12px Noto Sans JP"; 
+        ctx.fillStyle="#94a3b8"; 
+        const l="目標達成率"; 
+        var lX=Math.round((w-ctx.measureText(l).width)/2); 
+        ctx.fillText(l,lX,tY+15); 
+        ctx.save(); 
+      }
+    });
 
-  // ★日付表示用フォーマット（M/d形式）
-  function formatDateDisplay(dateStr) {
-    const d = new Date(dateStr);
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  }
+    document.addEventListener('DOMContentLoaded', async () => { setupUI(); await initLiff(); });
+    
+    function setupUI() { 
+      flatpickr("#hiddenDatePick",{locale:'ja',maxDate:'today',onChange:(d)=>{if(d[0])updateDate(d[0]);}}); 
+      document.getElementById('datePickerTrigger').addEventListener('click',()=>{document.getElementById('hiddenDatePick')._flatpickr.open();}); 
+      flatpickr("#compareDate1",{locale:'ja',maxDate:'today'}); 
+      flatpickr("#compareDate2",{locale:'ja',maxDate:'today'}); 
+      document.querySelectorAll('.modal').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('active');});}); 
+    }
 
-  window.addEventListener('load', async () => {
-    try {
-      await liff.init({ liffId: '2008504578-mqGQ6Kal' });
+    async function initLiff() { 
+      try { 
+        await liff.init({liffId:CONFIG.liffId}); 
+        if(!liff.isLoggedIn()){liff.login();return;} 
+        const p=await liff.getProfile(); state.userId=p.userId; 
+        updateDateDisplay(); loadDashboard(); 
+      } catch(e){
+        // エラー時もダッシュボードは隠さずアラートのみ
+        console.error(e);
+        alert('初期化エラー: ' + e.message);
+      } 
+    }
+    
+    function updateDate(d) { state.currentDate=d; updateDateDisplay(); loadDashboard(); }
+    function changeDate(n) { const d=new Date(state.currentDate); d.setDate(d.getDate()+n); if(d>new Date())return; updateDate(d); }
+    function updateDateDisplay() { const d=state.currentDate; const f=`${d.getMonth()+1}/${d.getDate()}`; document.getElementById('displayDate').textContent=`${d.getFullYear()}.${f}`; }
+    function formatDateParam(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    
+    async function loadDashboard() {
+      const overlay = document.getElementById('loadingOverlay'); 
+      overlay.classList.remove('fade-out'); // ローディング表示
       
-      if (!liff.isLoggedIn()) {
-        liff.login();
+      try {
+        const url=`${CONFIG.gasUrl}?action=getDashboardDataV2&userId=${state.userId}&date=${formatDateParam(state.currentDate)}`;
+        const res=await fetch(url); 
+        const data=await res.json();
+        
+        if(!data.success) throw new Error(data.error || 'No Data');
+        
+        state.data=data; 
+        renderDashboard(data); 
+        document.getElementById('dashboard').classList.remove('hidden');
+      } catch(e){
+        console.error(e); 
+        document.getElementById('dashboard').innerHTML='<div style="text-align:center;padding:50px;color:var(--text-sub);">データ取得失敗<br>またはデータがありません</div>'; 
+        document.getElementById('dashboard').classList.remove('hidden');
+      } finally { 
+        setTimeout(() => { overlay.classList.add('fade-out'); }, 500); // ローディング消去
+      }
+    }
+
+    let currentScore = 0; let currentBadge = '';
+    
+    function renderDashboard(data) {
+      const t = data.today; 
+      currentScore = calculateScore(t);
+      animateValue("scoreValue",0,currentScore,1000);
+      
+      const ring=document.getElementById('scoreRing'); 
+      ring.style.strokeDasharray=`${currentScore}, 100`;
+      ring.style.stroke=currentScore>=80?'var(--secondary)':(currentScore>=60?'#facc15':'var(--accent)');
+      
+      currentBadge = currentScore>=80?'EXCELLENT':(currentScore>=60?'GOOD':'POOR');
+      document.getElementById('scoreBadge').textContent=currentBadge; 
+      document.getElementById('scoreBadge').style.color=ring.style.stroke;
+      
+      document.getElementById('totalSleep').textContent=t.totalSleep?(t.totalSleep/60).toFixed(1):'--';
+      document.getElementById('deepSleep').textContent=t.deepSleep||'--'; 
+      document.getElementById('hrvValue').textContent=t.hrv||'--'; 
+      document.getElementById('efficiency').textContent=t.efficiency||'--';
+      
+      calculateSleepDebt(data);
+      
+      document.getElementById('insightsContainer').innerHTML=currentScore>=80?`<div class="card insight-card" style="padding:15px;display:flex;align-items:center;gap:10px;"><span>🌟</span><div><strong>素晴らしい睡眠です！</strong><br><span style="font-size:12px;opacity:0.9">この調子で維持しましょう。</span></div></div>`:'';
+      
+      renderCharts(data);
+    }
+
+    function calculateScore(t) { if(!t||!t.totalSleep)return 0; let s=0; if((t.totalSleep/60)>=7)s+=40;else s+=20; if(t.hrv>=50)s+=30;else s+=10; if(t.efficiency>=90)s+=30;else s+=10; return Math.min(100,s); }
+    
+    // ★修正: 週間睡眠バランス（超過/不足）
+    function calculateSleepDebt(data) {
+      const g=data.goalMinutes||420; const h=data.history||[]; 
+      // historyは新しい順(0が今日)なので、直近7日はそのままslice(0,7)でOK
+      const r=h.slice(0, 7); 
+      let ta=0; let vd=0;
+      
+      r.forEach(d=>{if(d.totalSleep>30){ta+=d.totalSleep;vd++;}});
+      
+      if(vd===0){
+        document.getElementById('debtValue').textContent='--';
+        document.getElementById('debtDesc').textContent='有効なデータなし';
         return;
       }
-
-      const profile = await liff.getProfile();
-      console.log('✓ LIFF Profile取得:', profile.userId);
-
-      // ★日付入力の初期設定
-      const dateInput = document.getElementById('dateInput');
-      dateInput.value = formatDateParam(currentDate);
-      dateInput.max = formatDateParam(new Date());
-
-      // ★日付変更イベント
-      dateInput.addEventListener('change', async (e) => {
-        const selectedDateStr = e.target.value; // "2025-11-24"
-        currentDate = new Date(selectedDateStr + 'T00:00:00');
-        console.log('📅 日付変更:', selectedDateStr);
-        
-        // ★選択日のデータを取得
-        await fetchDashboardData(profile.userId, selectedDateStr);
-      });
-
-      // ★初回データ読み込み（今日）
-      await fetchDashboardData(profile.userId, null);
-
-    } catch (error) {
-      console.error('❌ LIFF初期化エラー:', error);
-      showError('アプリの初期化に失敗しました');
-    }
-  });
-
-  // ★ダッシュボードデータ取得
-  async function fetchDashboardData(userId, targetDate) {
-    try {
-      showLoading(true);
-
-      const gasUrl = 'https://script.google.com/macros/s/AKfycbzGNTq8TxmMTPJuAoUJpIlIuxhU-xgPj5dIiJ3Xwfvqh0S-c5LJxxqIAFH_SQ6E5dXr/exec';
       
-      // ★URLパラメータ構築
-      let url = `${gasUrl}?action=getDashboardDataV2&userId=${encodeURIComponent(userId)}`;
-      if (targetDate) {
-        url += `&date=${encodeURIComponent(targetDate)}`;
-        console.log('🔗 リクエスト（日付指定）:', targetDate);
-      } else {
-        console.log('🔗 リクエスト（今日）');
-      }
-
-      const response = await fetch(url);
+      const tg=g*vd; const diff=ta-tg; 
+      const de=document.getElementById('debtValue'); 
+      const ce=document.getElementById('debtCard');
       
-      if (!response.ok) {
-        throw new Error(`HTTPエラー: ${response.status}`);
+      if(diff>=0){
+        de.textContent=`+${(diff/60).toFixed(1)}時間 (超過)`;
+        de.style.color='var(--secondary)';
+        ce.style.borderLeftColor='var(--secondary)';
+      }else{
+        de.textContent=`${(diff/60).toFixed(1)}時間 (不足)`;
+        de.style.color='var(--accent)';
+        ce.style.borderLeftColor='var(--accent)';
       }
-
-      const data = await response.json();
-      console.log('📦 GASレスポンス:', data);
-
-      if (!data.success) {
-        throw new Error(data.error || 'データ取得に失敗しました');
-      }
-
-      // ★データ表示
-      displayDashboardData(data);
-
-    } catch (error) {
-      console.error('❌ データ取得エラー:', error);
-      showError(`データ取得エラー: ${error.message}`);
-    } finally {
-      showLoading(false);
-    }
-  }
-
-  // ★データ表示
-  function displayDashboardData(data) {
-    const { today, history, streak, goalMinutes } = data;
-
-    console.log('📊 表示データ:', {
-      date: today.date,
-      totalSleep: today.totalSleep,
-      efficiency: today.efficiency,
-      historyCount: history.length
-    });
-
-    // --- 今日のデータ ---
-    const totalHours = Math.floor(today.totalSleep / 60);
-    const totalMinutes = today.totalSleep % 60;
-    
-    document.getElementById('totalSleep').textContent = 
-      today.totalSleep > 0 ? `${totalHours}h ${totalMinutes}m` : '--';
-    
-    document.getElementById('sleepEfficiency').textContent = 
-      today.efficiency > 0 ? `${today.efficiency}%` : '--';
-    
-    document.getElementById('deepSleep').textContent = 
-      today.deepSleep > 0 ? `${today.deepSleep}分` : '--';
-    
-    document.getElementById('remSleep').textContent = 
-      today.remSleep > 0 ? `${today.remSleep}分` : '--';
-    
-    document.getElementById('hrv').textContent = 
-      today.hrv !== null ? today.hrv : '--';
-    
-    document.getElementById('rhr').textContent = 
-      today.restingHeartRate !== null ? `${today.restingHeartRate} bpm` : '--';
-
-    // --- 目標達成率 ---
-    const achievement = goalMinutes > 0 && today.totalSleep > 0 
-      ? Math.min(Math.round((today.totalSleep / goalMinutes) * 100), 100)
-      : 0;
-    
-    const goalHours = Math.floor(goalMinutes / 60);
-    const goalMins = goalMinutes % 60;
-    document.getElementById('goalText').textContent = `目標: ${goalHours}時間${goalMins}分`;
-    
-    const progressBar = document.getElementById('goalProgressBar');
-    progressBar.style.width = `${achievement}%`;
-    progressBar.textContent = `${achievement}%`;
-
-    // --- 連続達成 ---
-    document.getElementById('streakCount').textContent = streak;
-
-    // --- グラフ描画 ---
-    renderSleepChart(history);
-
-    // コンテンツ表示
-    document.getElementById('content').style.display = 'block';
-  }
-
-  // ★グラフ描画
-  function renderSleepChart(history) {
-    // ★historyは新しい順（今日→過去）なので反転
-    const reversedHistory = [...history].reverse();
-    
-    const labels = reversedHistory.map(d => formatDateDisplay(d.date));
-    const sleepHours = reversedHistory.map(d => (d.totalSleep / 60).toFixed(1));
-    const deepSleepMinutes = reversedHistory.map(d => d.deepSleep);
-
-    console.log('📈 グラフデータ:', { labels, sleepHours, deepSleepMinutes });
-
-    const ctx = document.getElementById('sleepChart');
-    
-    // ★既存のグラフを破棄
-    if (myChart) {
-      myChart.destroy();
+      document.getElementById('debtDesc').textContent=`直近${vd}日間の平均目標比`;
     }
 
-    myChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: '総睡眠時間 (時間)',
-            data: sleepHours,
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            tension: 0.3,
-            yAxisID: 'y'
-          },
-          {
-            label: '深い睡眠 (分)',
-            data: deepSleepMinutes,
-            borderColor: 'rgb(153, 102, 255)',
-            backgroundColor: 'rgba(153, 102, 255, 0.2)',
-            tension: 0.3,
-            yAxisID: 'y1'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false
+    function calculateQuality(d) { if(!d||!d.totalSleep)return{t:0,d:0,r:0,h:0,e:0}; return {t:Math.min(100,((d.totalSleep/60)/7.5)*100),d:Math.min(100,((d.deepSleep/d.totalSleep)/0.2)*100),r:Math.min(100,((d.remSleep/d.totalSleep)/0.25)*100),h:Math.min(100,(d.hrv/60)*100),e:Math.min(100,(d.efficiency/85)*100)}; }
+    
+    function renderCharts(data) {
+      Chart.defaults.color='#94a3b8'; Chart.defaults.borderColor='#334155'; 
+      // historyは新しい順なので、グラフ用に古い順に反転させる
+      const h=[...data.history].reverse(); 
+      const l=h.map(d=>{const date=new Date(d.date);return `${date.getMonth()+1}/${date.getDate()}`;});
+      
+      // ステージチャート
+      if(state.charts.stage) state.charts.stage.destroy();
+      state.charts.stage=new Chart(document.getElementById('stageChart'),{type:'bar',data:{labels:l,datasets:[{label:'REM',data:h.map(d=>d.remSleep),backgroundColor:'#818cf8',borderRadius:4},{label:'浅い',data:h.map(d=>d.lightSleep),backgroundColor:'#fb7185',borderRadius:4},{label:'深い',data:h.map(d=>d.deepSleep),backgroundColor:'#34d399',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true}},plugins:{legend:{position:'bottom',labels:{boxWidth:10}}}}});
+      
+      // HRVチャート
+      if(state.charts.hrv) state.charts.hrv.destroy();
+      state.charts.hrv=new Chart(document.getElementById('hrvChart'),{type:'line',data:{labels:l,datasets:[{label:'心拍変動',data:h.map(d=>d.hrv),borderColor:'#38bdf8',borderWidth:2,tension:0.4,backgroundColor:(c)=>{const g=c.chart.ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'rgba(56,189,248,0.5)');g.addColorStop(1,'rgba(56,189,248,0)');return g;},fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}});
+      
+      // レーダーチャート（背景透明化済み）
+      if(state.charts.radar) state.charts.radar.destroy();
+      const q=calculateQuality(data.today);
+      state.charts.radar=new Chart(document.getElementById('radarChart'),{
+        type:'radar',
+        data:{
+          labels:['時間','深い','REM','心拍変動','効率'],
+          datasets:[{label:'バランス',data:Object.values(q),borderColor:'#818cf8',backgroundColor:'rgba(129,140,248,0.4)',pointBackgroundColor:'#fff',borderWidth:2}]
         },
-        plugins: {
-          legend: {
-            position: 'bottom'
-          }
-        },
-        scales: {
-          y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            title: {
-              display: true,
-              text: '時間'
-            },
-            beginAtZero: true
-          },
-          y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            title: {
-              display: true,
-              text: '分'
-            },
-            beginAtZero: true,
-            grid: {
-              drawOnChartArea: false
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          scales:{
+            r:{
+              min:0,max:100,
+              grid:{color:'#334155'},
+              angleLines:{color:'#334155'},
+              ticks:{backdropColor:'transparent',showLabelBackdrop:false,color:'rgba(255,255,255,0.5)',z:1}, // 数値背景透明化
+              pointLabels:{color:'#f1f5f9',font:{size:11},backdropColor:'transparent'}
             }
-          }
+          },
+          plugins:{legend:{display:false}}
         }
-      }
-    });
-  }
-
-  // ★ローディング表示
-  function showLoading(isLoading) {
-    document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
-    if (!isLoading) {
-      document.getElementById('content').style.display = 'block';
+      });
+      
+      // 目標ドーナツ
+      if(state.charts.goal) state.charts.goal.destroy();
+      const g=data.goalMinutes||420; const c=data.today.totalSleep||0;
+      state.charts.goal=new Chart(document.getElementById('goalChart'),{type:'doughnut',data:{labels:['達成','残り'],datasets:[{data:[c,Math.max(0,g-c)],backgroundColor:['#34d399','#1e293b'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'75%',plugins:{legend:{display:false}}}});
     }
-  }
-
-  // ★エラー表示
-  function showError(message) {
-    const errorDiv = document.getElementById('error');
-    errorDiv.textContent = message;
-    errorDiv.style.display = 'block';
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('content').style.display = 'none';
-  }
-
-  // ★今日の睡眠取得ボタン
-  async function getTodaySleep() {
-    try {
-      const profile = await liff.getProfile();
-      currentDate = new Date();
-      document.getElementById('dateInput').value = formatDateParam(currentDate);
-      await fetchDashboardData(profile.userId, null);
-    } catch (error) {
-      showError('データ取得に失敗しました');
-    }
-  }
-
-  // ★フィードバックリクエストボタン
-  async function requestFeedback() {
-    try {
-      showLoading(true);
-      const profile = await liff.getProfile();
+    
+    function animateValue(id,s,e,d) { const obj=document.getElementById(id); let start=null; const step=(t)=>{if(!start)start=t;const p=Math.min((t-start)/d,1);obj.innerHTML=Math.floor(p*(e-s)+s);if(p<1)requestAnimationFrame(step);}; requestAnimationFrame(step); }
+    function saveSettings() { const g=document.getElementById('goalMinutesInput').value; fetch(`${CONFIG.gasUrl}?action=setGoal&userId=${state.userId}&goalMinutes=${g}`); closeModal('settingsModal'); loadDashboard(); }
+    
+    // ★修正: エクスポート（iPhone対応）
+    function executeExport() { 
+      if(!state.data||!state.data.history)return alert('データなし'); 
+      const p=document.getElementById('exportPeriod').value; 
+      let td=[...state.data.history]; 
+      if(p!=='all')td=td.slice(0, parseInt(p)); // historyは新しい順なので先頭から取る
+      const csv=['日付,睡眠時間(分),深い睡眠(分),心拍変動'].join(',')+'\n'+td.map(d=>`${d.date},${d.totalSleep},${d.deepSleep},${d.hrv}`).join('\n'); 
+      const blob=new Blob([new Uint8Array([0xEF,0xBB,0xBF]),csv],{type:'text/csv'}); 
       
-      const gasUrl = 'https://script.google.com/macros/s/AKfycbzGNTq8TxmMTPJuAoUJpIlIuxhU-xgPj5dIiJ3Xwfvqh0S-c5LJxxqIAFH_SQ6E5dXr/exec';
-      const url = `${gasUrl}?action=requestFeedback&userId=${encodeURIComponent(profile.userId)}`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      if (data.success) {
-        alert('✅ フィードバックを送信しました！LINEをご確認ください。');
+      if (liff.isInClient()) {
+        alert("LINEアプリ内ではダウンロードが制限されています。\n右上のメニューから「ブラウザで開く」を選択するか、このリンクをコピーしてChrome/Safariで開いてください。");
+        liff.openWindow({ url: window.location.href, external: true });
       } else {
-        alert('❌ フィードバック送信に失敗しました');
+        const u=URL.createObjectURL(blob); 
+        const a=document.createElement('a'); a.href=u; a.download=`sleep_data.csv`; a.click(); 
+        closeModal('exportModal');
       }
-    } catch (error) {
-      alert('エラーが発生しました');
-    } finally {
-      showLoading(false);
     }
-  }
-
-  // ★データ同期ボタン
-  async function syncData() {
-    try {
-      showLoading(true);
-      const profile = await liff.getProfile();
-      
-      const gasUrl = 'https://script.google.com/macros/s/AKfycbzGNTq8TxmMTPJuAoUJpIlIuxhU-xgPj5dIiJ3Xwfvqh0S-c5LJxxqIAFH_SQ6E5dXr/exec';
-      const url = `${gasUrl}?action=syncData&userId=${encodeURIComponent(profile.userId)}`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      if (data.success) {
-        alert('✅ データ同期を開始しました！');
-        // 同期後にデータ再取得
-        await fetchDashboardData(profile.userId, formatDateParam(currentDate));
-      } else {
-        alert('❌ データ同期に失敗しました');
-      }
-    } catch (error) {
-      alert('エラーが発生しました');
-    } finally {
-      showLoading(false);
+    
+    async function executeCompare() { const d1=document.getElementById('compareDate1').value; const d2=document.getElementById('compareDate2').value; if(!d1||!d2)return; const r=document.getElementById('compareResult'); r.style.display='block'; r.innerHTML='計算中...'; try { const [r1,r2]=await Promise.all([fetch(`${CONFIG.gasUrl}?action=getDashboardDataV2&userId=${state.userId}&date=${d1}`).then(r=>r.json()),fetch(`${CONFIG.gasUrl}?action=getDashboardDataV2&userId=${state.userId}&date=${d2}`).then(r=>r.json())]); const diff=(r1.today.totalSleep||0)-(r2.today.totalSleep||0); r.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>${d1}</span>VS<span>${d2}</span></div><div style="font-size:18px;">差: <span style="font-weight:bold;color:${diff>0?'var(--secondary)':'var(--accent)'}">${diff>0?'+':''}${diff}分</span></div>`; } catch(e){r.innerHTML='エラー';} }
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    
+    // ★修正: シェア機能（エラーハンドリング強化）
+    async function shareScore() { 
+      if(!state.data||!state.data.today) { alert('データを読み込み中です'); return; }
+      if (!liff.isApiAvailable('shareTargetPicker')) { alert('【エラー】シェア機能が無効です。\nLINE Developersコンソールで「Share Target Picker」をONにしてください。'); return; }
+      const t=state.data.today; const d=state.currentDate; const ds=`${d.getMonth()+1}/${d.getDate()}(${['日','月','火','水','木','金','土'][d.getDay()]})`; const c=currentScore>=80?"素晴らしい睡眠です！🌟":(currentScore>=60?"良い調子です👍":"今日はゆっくり休みましょう😌"); const m=`🌙 SLEEP AI Dashboard\n📅 ${ds} の記録\n\n【スコア】${currentScore}点 (${currentBadge})\n【睡眠時間】${(t.totalSleep/60).toFixed(1)}時間\n【心拍変動】${t.hrv}ms\n\n${c}\n#SLEEPAI #睡眠記録`; 
+      try { await liff.shareTargetPicker([{type:"text",text:m}]); } 
+      catch(e) { console.error('シェア失敗:',e); if(e.code==="403") alert('権限エラー: LINE Developersコンソールで設定を確認してください。'); else alert('シェア画面を開けませんでした。'); } 
     }
-  }
-</script>
+  </script>
 </body>
 </html>
