@@ -242,202 +242,315 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    let currentDate = new Date();
-    let chartInstances = {};
+  let myChart = null;
+  let currentDate = new Date(); // ★現在選択中の日付を保持
 
-    // ★日付フォーマット（yyyy-MM-dd形式）
-    function formatDateParam(d) {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
+  // ★日付フォーマット関数（yyyy-MM-dd形式）
+  function formatDateParam(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
 
-    // ★LIFF初期化
-    window.addEventListener('load', async () => {
-      try {
-        await liff.init({ liffId: '2008504578-mqGQ6Kal' });
-        
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
+  // ★日付表示用フォーマット（M/d形式）
+  function formatDateDisplay(dateStr) {
+    const d = new Date(dateStr);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  }
 
-        const profile = await liff.getProfile();
-        console.log('LIFF Profile:', profile);
-
-        // ★日付入力の初期値を今日に設定
-        document.getElementById('dateInput').value = formatDateParam(currentDate);
-        document.getElementById('dateInput').max = formatDateParam(new Date());
-
-        // ★日付変更イベント
-        document.getElementById('dateInput').addEventListener('change', (e) => {
-          const selectedDate = new Date(e.target.value + 'T00:00:00');
-          console.log('日付変更:', formatDateParam(selectedDate));
-          currentDate = selectedDate;
-          loadDashboardData(profile.userId, formatDateParam(selectedDate));
-        });
-
-        // ★初回データ読み込み
-        loadDashboardData(profile.userId, null);
-
-      } catch (error) {
-        console.error('LIFF初期化エラー:', error);
-        showError('アプリの初期化に失敗しました');
+  window.addEventListener('load', async () => {
+    try {
+      await liff.init({ liffId: '2008504578-mqGQ6Kal' });
+      
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
       }
+
+      const profile = await liff.getProfile();
+      console.log('✓ LIFF Profile取得:', profile.userId);
+
+      // ★日付入力の初期設定
+      const dateInput = document.getElementById('dateInput');
+      dateInput.value = formatDateParam(currentDate);
+      dateInput.max = formatDateParam(new Date());
+
+      // ★日付変更イベント
+      dateInput.addEventListener('change', async (e) => {
+        const selectedDateStr = e.target.value; // "2025-11-24"
+        currentDate = new Date(selectedDateStr + 'T00:00:00');
+        console.log('📅 日付変更:', selectedDateStr);
+        
+        // ★選択日のデータを取得
+        await fetchDashboardData(profile.userId, selectedDateStr);
+      });
+
+      // ★初回データ読み込み（今日）
+      await fetchDashboardData(profile.userId, null);
+
+    } catch (error) {
+      console.error('❌ LIFF初期化エラー:', error);
+      showError('アプリの初期化に失敗しました');
+    }
+  });
+
+  // ★ダッシュボードデータ取得
+  async function fetchDashboardData(userId, targetDate) {
+    try {
+      showLoading(true);
+
+      const gasUrl = 'https://script.google.com/macros/s/AKfycbzGNTq8TxmMTPJuAoUJpIlIuxhU-xgPj5dIiJ3Xwfvqh0S-c5LJxxqIAFH_SQ6E5dXr/exec';
+      
+      // ★URLパラメータ構築
+      let url = `${gasUrl}?action=getDashboardDataV2&userId=${encodeURIComponent(userId)}`;
+      if (targetDate) {
+        url += `&date=${encodeURIComponent(targetDate)}`;
+        console.log('🔗 リクエスト（日付指定）:', targetDate);
+      } else {
+        console.log('🔗 リクエスト（今日）');
+      }
+
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTPエラー: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('📦 GASレスポンス:', data);
+
+      if (!data.success) {
+        throw new Error(data.error || 'データ取得に失敗しました');
+      }
+
+      // ★データ表示
+      displayDashboardData(data);
+
+    } catch (error) {
+      console.error('❌ データ取得エラー:', error);
+      showError(`データ取得エラー: ${error.message}`);
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  // ★データ表示
+  function displayDashboardData(data) {
+    const { today, history, streak, goalMinutes } = data;
+
+    console.log('📊 表示データ:', {
+      date: today.date,
+      totalSleep: today.totalSleep,
+      efficiency: today.efficiency,
+      historyCount: history.length
     });
 
-    // ★ダッシュボードデータ読み込み
-    async function loadDashboardData(userId, date) {
-      try {
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('content').style.display = 'none';
-        document.getElementById('error').style.display = 'none';
+    // --- 今日のデータ ---
+    const totalHours = Math.floor(today.totalSleep / 60);
+    const totalMinutes = today.totalSleep % 60;
+    
+    document.getElementById('totalSleep').textContent = 
+      today.totalSleep > 0 ? `${totalHours}h ${totalMinutes}m` : '--';
+    
+    document.getElementById('sleepEfficiency').textContent = 
+      today.efficiency > 0 ? `${today.efficiency}%` : '--';
+    
+    document.getElementById('deepSleep').textContent = 
+      today.deepSleep > 0 ? `${today.deepSleep}分` : '--';
+    
+    document.getElementById('remSleep').textContent = 
+      today.remSleep > 0 ? `${today.remSleep}分` : '--';
+    
+    document.getElementById('hrv').textContent = 
+      today.hrv !== null ? today.hrv : '--';
+    
+    document.getElementById('rhr').textContent = 
+      today.restingHeartRate !== null ? `${today.restingHeartRate} bpm` : '--';
 
-        const gasUrl = 'https://script.google.com/macros/s/AKfycby83-0okes807ukW_6zhX1DGzHCJCW-WghWhFAKYMJkcmskM56F3EPMe3QpfZWc0OC8/exec';
-        
-        // ★日付パラメータを追加
-        let url = `${gasUrl}?action=getDashboardDataV2&userId=${encodeURIComponent(userId)}`;
-        if (date) {
-          url += `&date=${encodeURIComponent(date)}`;
-          console.log('リクエストURL（日付指定）:', url);
-        } else {
-          console.log('リクエストURL（今日）:', url);
-        }
+    // --- 目標達成率 ---
+    const achievement = goalMinutes > 0 && today.totalSleep > 0 
+      ? Math.min(Math.round((today.totalSleep / goalMinutes) * 100), 100)
+      : 0;
+    
+    const goalHours = Math.floor(goalMinutes / 60);
+    const goalMins = goalMinutes % 60;
+    document.getElementById('goalText').textContent = `目標: ${goalHours}時間${goalMins}分`;
+    
+    const progressBar = document.getElementById('goalProgressBar');
+    progressBar.style.width = `${achievement}%`;
+    progressBar.textContent = `${achievement}%`;
 
-        const response = await fetch(url);
-        const data = await response.json();
+    // --- 連続達成 ---
+    document.getElementById('streakCount').textContent = streak;
 
-        console.log('GASレスポンス:', data);
+    // --- グラフ描画 ---
+    renderSleepChart(history);
 
-        if (!data.success) {
-          throw new Error(data.error || 'データ取得に失敗しました');
-        }
+    // コンテンツ表示
+    document.getElementById('content').style.display = 'block';
+  }
 
-        // ★データ表示
-        displayDashboardData(data);
+  // ★グラフ描画
+  function renderSleepChart(history) {
+    // ★historyは新しい順（今日→過去）なので反転
+    const reversedHistory = [...history].reverse();
+    
+    const labels = reversedHistory.map(d => formatDateDisplay(d.date));
+    const sleepHours = reversedHistory.map(d => (d.totalSleep / 60).toFixed(1));
+    const deepSleepMinutes = reversedHistory.map(d => d.deepSleep);
 
-      } catch (error) {
-        console.error('データ読み込みエラー:', error);
-        showError('データの読み込みに失敗しました: ' + error.message);
-      } finally {
-        document.getElementById('loading').style.display = 'none';
-      }
+    console.log('📈 グラフデータ:', { labels, sleepHours, deepSleepMinutes });
+
+    const ctx = document.getElementById('sleepChart');
+    
+    // ★既存のグラフを破棄
+    if (myChart) {
+      myChart.destroy();
     }
 
-    // ★データ表示
-    function displayDashboardData(data) {
-      const { today, history, streak, goalMinutes } = data;
+    myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: '総睡眠時間 (時間)',
+            data: sleepHours,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.3,
+            yAxisID: 'y'
+          },
+          {
+            label: '深い睡眠 (分)',
+            data: deepSleepMinutes,
+            borderColor: 'rgb(153, 102, 255)',
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            tension: 0.3,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        },
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: {
+              display: true,
+              text: '時間'
+            },
+            beginAtZero: true
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: {
+              display: true,
+              text: '分'
+            },
+            beginAtZero: true,
+            grid: {
+              drawOnChartArea: false
+            }
+          }
+        }
+      }
+    });
+  }
 
-      // 今日のデータ
-      document.getElementById('totalSleep').textContent = 
-        today.totalSleep > 0 ? `${Math.floor(today.totalSleep / 60)}h ${today.totalSleep % 60}m` : '--';
-      
-      document.getElementById('efficiency').textContent = 
-        today.efficiency > 0 ? `${today.efficiency}%` : '--';
-      
-      document.getElementById('deepSleep').textContent = 
-        today.deepSleep > 0 ? `${today.deepSleep}分` : '--';
-      
-      document.getElementById('hrv').textContent = 
-        today.hrv !== null ? today.hrv : '--';
-
-      // 目標達成率
-      const achievement = goalMinutes > 0 && today.totalSleep > 0 
-        ? Math.min(Math.round((today.totalSleep / goalMinutes) * 100), 100)
-        : 0;
-      
-      document.getElementById('goalText').textContent = `${goalMinutes}分`;
-      document.getElementById('goalProgressBar').style.width = `${achievement}%`;
-      document.getElementById('goalProgressText').textContent = `${achievement}%`;
-
-      // 連続達成
-      document.getElementById('streak').textContent = `${streak}日連続`;
-
-      // グラフ描画
-      renderCharts(history);
-
+  // ★ローディング表示
+  function showLoading(isLoading) {
+    document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
+    if (!isLoading) {
       document.getElementById('content').style.display = 'block';
     }
+  }
 
-    // ★グラフ描画
-    function renderCharts(history) {
-      // ★historyは新しい順なので反転（古い→新しい）
-      const reversedHistory = [...history].reverse();
-      
-      const labels = reversedHistory.map(d => {
-        const date = new Date(d.date);
-        return `${date.getMonth() + 1}/${date.getDate()}`;
-      });
-      
-      const sleepData = reversedHistory.map(d => Math.round(d.totalSleep / 60 * 10) / 10);
-      const hrvData = reversedHistory.map(d => d.hrv);
+  // ★エラー表示
+  function showError(message) {
+    const errorDiv = document.getElementById('error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'none';
+  }
 
-      // 既存のチャートを破棄
-      if (chartInstances.sleep) chartInstances.sleep.destroy();
-      if (chartInstances.hrv) chartInstances.hrv.destroy();
-
-      // 睡眠時間グラフ
-      const sleepCtx = document.getElementById('sleepChart').getContext('2d');
-      chartInstances.sleep = new Chart(sleepCtx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: '総睡眠時間 (時間)',
-            data: sleepData,
-            borderColor: '#667eea',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            tension: 0.4,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: '時間' }
-            }
-          }
-        }
-      });
-
-      // HRVグラフ
-      const hrvCtx = document.getElementById('hrvChart').getContext('2d');
-      chartInstances.hrv = new Chart(hrvCtx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'HRV (ms)',
-            data: hrvData,
-            borderColor: '#f5576c',
-            backgroundColor: 'rgba(245, 87, 108, 0.1)',
-            tension: 0.4,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: false,
-              title: { display: true, text: 'ms' }
-            }
-          }
-        }
-      });
+  // ★今日の睡眠取得ボタン
+  async function getTodaySleep() {
+    try {
+      const profile = await liff.getProfile();
+      currentDate = new Date();
+      document.getElementById('dateInput').value = formatDateParam(currentDate);
+      await fetchDashboardData(profile.userId, null);
+    } catch (error) {
+      showError('データ取得に失敗しました');
     }
+  }
 
-    function showError(message) {
-      const errorDiv = document.getElementById('error');
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-      document.getElementById('loading').style.display = 'none';
+  // ★フィードバックリクエストボタン
+  async function requestFeedback() {
+    try {
+      showLoading(true);
+      const profile = await liff.getProfile();
+      
+      const gasUrl = 'https://script.google.com/macros/s/AKfycbzGNTq8TxmMTPJuAoUJpIlIuxhU-xgPj5dIiJ3Xwfvqh0S-c5LJxxqIAFH_SQ6E5dXr/exec';
+      const url = `${gasUrl}?action=requestFeedback&userId=${encodeURIComponent(profile.userId)}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('✅ フィードバックを送信しました！LINEをご確認ください。');
+      } else {
+        alert('❌ フィードバック送信に失敗しました');
+      }
+    } catch (error) {
+      alert('エラーが発生しました');
+    } finally {
+      showLoading(false);
     }
-  </script>
+  }
+
+  // ★データ同期ボタン
+  async function syncData() {
+    try {
+      showLoading(true);
+      const profile = await liff.getProfile();
+      
+      const gasUrl = 'https://script.google.com/macros/s/AKfycbzGNTq8TxmMTPJuAoUJpIlIuxhU-xgPj5dIiJ3Xwfvqh0S-c5LJxxqIAFH_SQ6E5dXr/exec';
+      const url = `${gasUrl}?action=syncData&userId=${encodeURIComponent(profile.userId)}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('✅ データ同期を開始しました！');
+        // 同期後にデータ再取得
+        await fetchDashboardData(profile.userId, formatDateParam(currentDate));
+      } else {
+        alert('❌ データ同期に失敗しました');
+      }
+    } catch (error) {
+      alert('エラーが発生しました');
+    } finally {
+      showLoading(false);
+    }
+  }
+</script>
 </body>
 </html>
